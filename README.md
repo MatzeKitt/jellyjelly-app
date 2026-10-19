@@ -39,6 +39,33 @@ open build/DerivedData/Build/Products/Release/JellyJelly.app
 
 Or open `JellyJelly.xcodeproj` in Xcode after running `xcodegen generate`.
 
+## Installing and updating
+
+Download `JellyJelly-x.y.z.zip` from the [latest release](https://github.com/MatzeKitt/jellyjelly-app/releases/latest) and move `JellyJelly.app` to Applications. The app isn't notarized, so macOS blocks the first launch: open it once, then go to System Settings → Privacy & Security and click "Open Anyway".
+
+After that, JellyJelly updates itself with [Sparkle](https://sparkle-project.org). It checks for updates once a day, or whenever you choose JellyJelly → Check for Updates…. You can turn on automatic installation in Settings → Updates.
+
+## Releasing
+
+Pushing a version tag builds, signs, and publishes a release:
+
+```sh
+git tag -a v1.2.3 -m "Release notes in Markdown"
+git push origin v1.2.3
+```
+
+The [release workflow](.github/workflows/release.yml) uses the tag as the app version (`MARKETING_VERSION` and `CURRENT_PROJECT_VERSION`), so tags must look like `v1.2.3`. The release notes come from the tag message. A lightweight tag gets a list of commits since the previous tag instead. The workflow publishes the zipped app together with `appcast.xml`, the Sparkle feed the app reads from the latest release.
+
+Updates are signed with an EdDSA key. The public key is `SUPublicEDKey` in `Info.plist`. The private key lives in the login keychain under the account `jellyjelly` and in the `SPARKLE_PRIVATE_KEY` repository secret. To set the secret from the keychain, run this after a build has resolved the Sparkle package:
+
+```sh
+build/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_keys --account jellyjelly -x sparkle-key.txt
+gh secret set SPARKLE_PRIVATE_KEY < sparkle-key.txt
+rm sparkle-key.txt
+```
+
+Back up the private key. Without it, existing installations can't verify new updates.
+
 ## YouTube libraries
 
 Libraries with "YouTube" in their name are detected automatically. To choose them explicitly, go to Settings → YouTube.

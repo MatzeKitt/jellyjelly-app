@@ -10,6 +10,7 @@ struct SettingsView: View {
 
     var body: some View {
         @Bindable var settings = app.settings
+        @Bindable var updater = Updater.shared
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 if embedded {
@@ -203,6 +204,24 @@ struct SettingsView: View {
                         ShortcutRow(keys: "N", action: "Next video")
                         ShortcutRow(keys: "Esc", action: "Leave full screen or picture in picture, then close player")
                         ShortcutRow(keys: "⌘[  or mouse back button", action: "Go back")
+                    }
+                }
+
+                SettingsGroup(title: "Updates", systemImage: "arrow.triangle.2.circlepath.circle.fill") {
+                    SettingsRow("Version") {
+                        HStack(spacing: 10) {
+                            Text(updater.version)
+                                .foregroundStyle(palette.secondaryText)
+                            Button("Check Now") { updater.checkForUpdates() }
+                                .disabled(!updater.canCheckForUpdates)
+                        }
+                    }
+                    SettingsRow("Check for updates automatically") {
+                        Toggle("", isOn: $updater.automaticallyChecksForUpdates).labelsHidden().toggleStyle(.switch)
+                    }
+                    SettingsRow("Download and install updates automatically", detail: "Updates are installed the next time JellyJelly quits.") {
+                        Toggle("", isOn: $updater.automaticallyDownloadsUpdates).labelsHidden().toggleStyle(.switch)
+                            .disabled(!updater.automaticallyChecksForUpdates)
                     }
                 }
 

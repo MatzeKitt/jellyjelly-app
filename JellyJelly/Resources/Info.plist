@@ -37,5 +37,11 @@
 	<string>JellyJelly connects to your Jellyfin server on the local network.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 Matthias Kittsteiner</string>
+	<key>SUFeedURL</key>
+	<string>https://github.com/MatzeKitt/jellyjelly-app/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>N1ZQHqt2ummRZjMaBfCwb0PSGY/HJBIsxW55gJj1M6g=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 </dict>
 </plist>

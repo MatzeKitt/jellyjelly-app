@@ -4,6 +4,7 @@ import SwiftUI
 struct JellyJellyApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var app = AppModel.shared
+    @State private var updater = Updater.shared
 
     var body: some Scene {
         Window("JellyJelly", id: "main") {
@@ -17,6 +18,10 @@ struct JellyJellyApp: App {
         .windowToolbarStyle(.unified(showsTitle: false))
         .defaultSize(width: 1480, height: 920)
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") { updater.checkForUpdates() }
+                    .disabled(!updater.canCheckForUpdates)
+            }
             CommandGroup(replacing: .newItem) {}
             CommandGroup(after: .sidebar) {
                 Button(app.settings.sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar") {

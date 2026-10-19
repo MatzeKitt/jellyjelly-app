@@ -1485,6 +1485,39 @@
         }
       }
     },
+    "Check for updates automatically" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisch nach Updates suchen"
+          }
+        }
+      }
+    },
+    "Check for Updates…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach Updates suchen …"
+          }
+        }
+      }
+    },
+    "Check Now" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jetzt suchen"
+          }
+        }
+      }
+    },
     "Clear Genres" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1852,6 +1885,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Herunterladen"
+          }
+        }
+      }
+    },
+    "Download and install updates automatically" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updates automatisch laden und installieren"
           }
         }
       }
@@ -4832,6 +4876,28 @@
         }
       }
     },
+    "Updates" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updates"
+          }
+        }
+      }
+    },
+    "Updates are installed the next time JellyJelly quits." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updates werden installiert, wenn JellyJelly das nächste Mal beendet wird."
+          }
+        }
+      }
+    },
     "Upload date" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4894,6 +4960,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wird geprüft …"
+          }
+        }
+      }
+    },
+    "Version" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version"
           }
         }
       }
