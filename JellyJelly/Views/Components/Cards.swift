@@ -6,6 +6,8 @@ import SwiftUI
 struct HoverLift: ViewModifier {
     var cornerRadius: CGFloat = Metrics.cardCorner
     var scale: CGFloat = 1.035
+    /// Stacking a second `onHover` on the same view starves one of them, so callers listen here instead.
+    var onHover: ((Bool) -> Void)?
     @State private var hovering = false
     @Environment(\.palette) private var palette
 
@@ -18,14 +20,17 @@ struct HoverLift: ViewModifier {
             .scaleEffect(hovering ? scale : 1)
             .shadow(color: .black.opacity(hovering ? 0.5 : 0.25), radius: hovering ? 18 : 6, y: hovering ? 10 : 3)
             .animation(.spring(response: 0.28, dampingFraction: 0.8), value: hovering)
-            .onHover { hovering = $0 }
+            .onHover { inside in
+                hovering = inside
+                onHover?(inside)
+            }
             .zIndex(hovering ? 1 : 0)
     }
 }
 
 extension View {
-    func hoverLift(cornerRadius: CGFloat = Metrics.cardCorner, scale: CGFloat = 1.035) -> some View {
-        modifier(HoverLift(cornerRadius: cornerRadius, scale: scale))
+    func hoverLift(cornerRadius: CGFloat = Metrics.cardCorner, scale: CGFloat = 1.035, onHover: ((Bool) -> Void)? = nil) -> some View {
+        modifier(HoverLift(cornerRadius: cornerRadius, scale: scale, onHover: onHover))
     }
 }
 
@@ -60,15 +65,47 @@ struct DurationBadge: View {
 }
 
 struct WatchedBadge: View {
+    /// Inactive renders the same checkmark muted, as the "mark as watched" affordance.
+    var active = true
     @Environment(\.palette) private var palette
 
     var body: some View {
         Image(systemName: "checkmark")
             .font(.system(size: 10, weight: .heavy))
-            .foregroundStyle(palette.onAccent)
+            .foregroundStyle(active ? palette.onAccent : .white)
             .frame(width: 22, height: 22)
-            .background(palette.accent, in: Circle())
+            .background(active ? AnyShapeStyle(palette.accent) : AnyShapeStyle(.black.opacity(0.72)), in: Circle())
+            .overlay(Circle().strokeBorder(.white.opacity(active ? 0 : 0.15), lineWidth: 1))
             .shadow(radius: 3)
+    }
+}
+
+/// The watched checkmark as a button: marks watched or unwatched on click.
+struct WatchedToggle: View {
+    var item: BaseItem
+
+    @Environment(AppModel.self) private var app
+    @State private var hovering = false
+
+    var body: some View {
+        Button {
+            app.togglePlayed(item)
+        } label: {
+            WatchedBadge(active: item.isPlayed)
+                .scaleEffect(hovering ? 1.15 : 1)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .animation(.spring(response: 0.2), value: hovering)
+        .help(helpText)
+    }
+
+    private var helpText: String {
+        if item.isPlayed {
+            return String(localized: "Mark as Unwatched")
+        }
+        return item.isSeries || item.isSeason ? String(localized: "Mark All as Watched") : String(localized: "Mark as Watched")
     }
 }
 
@@ -182,37 +219,40 @@ struct VideoCard: View {
 
     @Environment(AppModel.self) private var app
     @Environment(\.palette) private var palette
+    @State private var hovering = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Button(action: action) {
-                ZStack(alignment: .bottomTrailing) {
-                    Color.black
-                    RemoteImage(url: app.client?.thumbURL(item, width: 720))
-                    if let duration = item.duration {
-                        DurationBadge(text: Format.time(duration))
+            ZStack(alignment: .topTrailing) {
+                Button(action: action) {
+                    ZStack(alignment: .bottomTrailing) {
+                        Color.black
+                        RemoteImage(url: app.client?.thumbURL(item, width: 720))
+                        if let duration = item.duration {
+                            DurationBadge(text: Format.time(duration))
+                                .padding(8)
+                                .padding(.bottom, item.progress == nil ? 0 : 4)
+                        }
+                        if let progress = item.progress {
+                            ProgressStrip(progress: progress)
+                        }
+                        if item.isPlayed {
+                            Color.black.opacity(0.35)
+                        }
+                        DownloadBadge(itemId: item.id)
                             .padding(8)
-                            .padding(.bottom, item.progress == nil ? 0 : 4)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     }
-                    if let progress = item.progress {
-                        ProgressStrip(progress: progress)
-                    }
-                    if item.isPlayed {
-                        Color.black.opacity(0.35)
-                        WatchedBadge()
-                            .padding(8)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    }
-                    DownloadBadge(itemId: item.id)
-                        .padding(8)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .contentShape(Rectangle())
                 }
-                .aspectRatio(16 / 9, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: Metrics.cardCorner, style: .continuous))
-                .contentShape(RoundedRectangle(cornerRadius: Metrics.cardCorner, style: .continuous))
-                .hoverLift()
+                .buttonStyle(.plain)
+                if item.isPlayed || hovering {
+                    WatchedToggle(item: item).padding(8)
+                }
             }
-            .buttonStyle(.plain)
+            .aspectRatio(16 / 9, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: Metrics.cardCorner, style: .continuous))
+            .hoverLift { hovering = $0 }
 
             HStack(alignment: .top, spacing: 10) {
                 if showChannel {
@@ -263,38 +303,43 @@ struct LandscapeCard: View {
 
     @Environment(AppModel.self) private var app
     @Environment(\.palette) private var palette
+    @State private var hovering = false
 
     var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 8) {
-                ZStack(alignment: .bottomLeading) {
-                    Color.black
-                    RemoteImage(url: app.client?.thumbURL(item, width: 640))
-                    LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .center, endPoint: .bottom)
-                    if let duration = item.duration {
-                        let left = item.hasResumePosition ? max(0, duration - item.resumePosition) : duration
-                        Text(item.hasResumePosition ? String(localized: "\(Format.duration(left)) left") : Format.duration(duration))
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.9))
-                            .padding(10)
-                            .padding(.bottom, item.progress == nil ? 0 : 4)
-                    }
-                    if let progress = item.progress {
-                        ProgressStrip(progress: progress)
-                    }
-                    if item.isPlayed {
-                        WatchedBadge()
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack(alignment: .topTrailing) {
+                Button(action: action) {
+                    ZStack(alignment: .bottomLeading) {
+                        Color.black
+                        RemoteImage(url: app.client?.thumbURL(item, width: 640))
+                        LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .center, endPoint: .bottom)
+                        if let duration = item.duration {
+                            let left = item.hasResumePosition ? max(0, duration - item.resumePosition) : duration
+                            Text(item.hasResumePosition ? String(localized: "\(Format.duration(left)) left") : Format.duration(duration))
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.9))
+                                .padding(10)
+                                .padding(.bottom, item.progress == nil ? 0 : 4)
+                        }
+                        if let progress = item.progress {
+                            ProgressStrip(progress: progress)
+                        }
+                        DownloadBadge(itemId: item.id)
                             .padding(8)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     }
-                    DownloadBadge(itemId: item.id)
-                        .padding(8)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .contentShape(Rectangle())
                 }
-                .frame(width: width, height: width * 9 / 16)
-                .clipShape(RoundedRectangle(cornerRadius: Metrics.cardCorner, style: .continuous))
-                .hoverLift()
+                .buttonStyle(.plain)
+                if item.isPlayed || hovering {
+                    WatchedToggle(item: item).padding(8)
+                }
+            }
+            .frame(width: width, height: width * 9 / 16)
+            .clipShape(RoundedRectangle(cornerRadius: Metrics.cardCorner, style: .continuous))
+            .hoverLift { hovering = $0 }
 
+            Button(action: action) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(primaryTitle)
                         .font(.system(size: 14, weight: .semibold))
@@ -308,10 +353,10 @@ struct LandscapeCard: View {
                     }
                 }
                 .frame(width: width, alignment: .leading)
+                .contentShape(Rectangle())
             }
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
         .itemContextMenu(item)
     }
 
@@ -341,40 +386,48 @@ struct PosterCard: View {
 
     @Environment(AppModel.self) private var app
     @Environment(\.palette) private var palette
+    @State private var hovering = false
 
     var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 8) {
-                ZStack(alignment: .topTrailing) {
-                    RemoteImage(url: app.client?.posterURL(item, width: 400)) {
-                        ZStack {
-                            palette.surface
-                            Text(item.displayName)
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(palette.secondaryText)
-                                .multilineTextAlignment(.center)
-                                .padding()
+        VStack(alignment: .leading, spacing: 8) {
+            // The watched toggle sits beside the poster button, not inside it, so its clicks don't open the item.
+            ZStack(alignment: .topTrailing) {
+                Button(action: action) {
+                    ZStack {
+                        RemoteImage(url: app.client?.posterURL(item, width: 400)) {
+                            ZStack {
+                                palette.surface
+                                Text(item.displayName)
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(palette.secondaryText)
+                                    .multilineTextAlignment(.center)
+                                    .padding()
+                            }
                         }
-                    }
-                    if item.isPlayed {
-                        WatchedBadge().padding(8)
-                    } else if item.isSeries, item.unplayedCount > 0 {
-                        CountBadge(count: item.unplayedCount).padding(8)
-                    }
-                    if let progress = item.progress {
-                        VStack {
-                            Spacer()
-                            ProgressStrip(progress: progress)
+                        if let progress = item.progress {
+                            VStack {
+                                Spacer()
+                                ProgressStrip(progress: progress)
+                            }
                         }
+                        DownloadBadge(itemId: item.id)
+                            .padding(8)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     }
-                    DownloadBadge(itemId: item.id)
-                        .padding(8)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .contentShape(Rectangle())
                 }
-                .frame(width: width, height: width * 1.5)
-                .clipShape(RoundedRectangle(cornerRadius: Metrics.cardCorner, style: .continuous))
-                .hoverLift()
+                .buttonStyle(.plain)
+                if item.isPlayed || hovering {
+                    WatchedToggle(item: item).padding(8)
+                } else if item.isSeries, item.unplayedCount > 0 {
+                    CountBadge(count: item.unplayedCount).padding(8)
+                }
+            }
+            .frame(width: width, height: width * 1.5)
+            .clipShape(RoundedRectangle(cornerRadius: Metrics.cardCorner, style: .continuous))
+            .hoverLift { hovering = $0 }
 
+            Button(action: action) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.displayName)
                         .font(.system(size: 13, weight: .semibold))
@@ -387,10 +440,10 @@ struct PosterCard: View {
                     }
                 }
                 .frame(width: width, alignment: .leading)
+                .contentShape(Rectangle())
             }
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
         .itemContextMenu(item)
     }
 }
