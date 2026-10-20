@@ -1,5 +1,6 @@
 import AppKit
 import AVFoundation
+import os
 
 /// Apple's player, used for MP4/MOV files with codecs macOS decodes natively.
 @MainActor
@@ -9,9 +10,18 @@ final class AVPlayerEngine: PlaybackEngine {
     var videoView: NSView { view }
     let rendersSubtitles = false
 
+    /// Buffer diagnostics, readable with
+    /// `log stream --level info --predicate 'subsystem == "media.kitt.JellyJelly"'`.
+    private static let log = Logger(subsystem: "media.kitt.JellyJelly", category: "AVPlayer")
+
     private let player = AVPlayer()
     private let view = PlayerLayerView()
     private var item: AVPlayerItem?
+    /// Streams go through a disk cache; downloaded files play straight from disk.
+    private var cache: StreamCache?
+    /// The video track, for looking up where the file stores a point in time.
+    private var sampleTrack: AVAssetTrack?
+    private var readAheadSeconds: Double = 0
     private var timeObserver: Any?
     private var observations: [NSKeyValueObservation] = []
     private var notificationTokens: [NSObjectProtocol] = []
@@ -22,6 +32,8 @@ final class AVPlayerEngine: PlaybackEngine {
     private var audioGroup: AVMediaSelectionGroup?
     private var lastBufferingState: Bool?
     private var trackInfo: [TrackInfo] = []
+    private var lastBufferedAhead: Double = 0
+    private var seeking = false
 
     private struct TrackInfo {
         var trackID: CMPersistentTrackID
@@ -61,10 +73,16 @@ final class AVPlayerEngine: PlaybackEngine {
     }
 
     func load(_ source: PlaybackSource) {
-        let asset = AVURLAsset(url: source.url, options: [
+        let cache = source.url.isFileURL ? nil : StreamCache(url: source.url, headers: source.headers, readAheadSeconds: source.bufferAheadSeconds)
+        self.cache = cache
+        readAheadSeconds = Double(max(30, source.bufferAheadSeconds))
+        let asset = AVURLAsset(url: cache?.assetURL ?? source.url, options: [
             "AVURLAssetHTTPHeaderFieldsKey": source.headers,
             AVURLAssetPreferPreciseDurationAndTimingKey: false,
         ])
+        if let cache {
+            asset.resourceLoader.setDelegate(cache, queue: cache.queue)
+        }
         let item = AVPlayerItem(asset: asset)
         item.preferredForwardBufferDuration = TimeInterval(source.bufferAheadSeconds)
         item.canUseNetworkResourcesForLiveStreamingWhilePaused = true
@@ -122,7 +140,11 @@ final class AVPlayerEngine: PlaybackEngine {
             },
             center.addObserver(forName: .AVPlayerItemPlaybackStalled, object: item, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated {
-                    self?.stallCount += 1
+                    guard let self else {
+                        return
+                    }
+                    self.stallCount += 1
+                    Self.log.warning("Stalled: \(self.bufferSnapshot, privacy: .public)")
                 }
             },
             center.addObserver(forName: .AVPlayerItemFailedToPlayToEndTime, object: item, queue: .main) { [weak self] note in
@@ -138,6 +160,12 @@ final class AVPlayerEngine: PlaybackEngine {
                     return
                 }
                 self.onEvent?(.time(time.seconds))
+                if let cache = self.cache, let duration = self.item?.duration.seconds {
+                    cache.updatePlayhead(time.seconds, duration: duration,
+                                         byteOffset: self.byteOffset(at: time.seconds),
+                                         readAheadByteOffset: self.byteOffset(at: min(duration, time.seconds + self.readAheadSeconds)))
+                    self.reportBufferedAhead()
+                }
             }
         }
     }
@@ -170,6 +198,10 @@ final class AVPlayerEngine: PlaybackEngine {
         if waiting != lastBufferingState {
             lastBufferingState = waiting
             onEvent?(.buffering(waiting, progress: nil))
+            if waiting, !seeking {
+                let reason = player.reasonForWaitingToPlay?.rawValue ?? "unknown"
+                Self.log.warning("Waiting (\(reason, privacy: .public)): \(self.bufferSnapshot, privacy: .public)")
+            }
         }
         onEvent?(.paused(player.timeControlStatus == .paused))
     }
@@ -191,7 +223,32 @@ final class AVPlayerEngine: PlaybackEngine {
     }
 
     private func reportBufferedAhead() {
-        onEvent?(.bufferedAhead(bufferedAhead))
+        let ahead = bufferedAhead
+        // While it renders video, AVPlayer now and then drops a block just ahead of the playhead.
+        // The stream cache has it on disk, so this only stalls playback without one.
+        if lastBufferedAhead >= 30, ahead < 5, !seeking {
+            Self.log.info("Player buffer collapsed from \(self.lastBufferedAhead, format: .fixed(precision: 1), privacy: .public) s: \(self.bufferSnapshot, privacy: .public)")
+        }
+        lastBufferedAhead = ahead
+        onEvent?(.bufferedAhead(max(ahead, cache?.statistics.cachedAheadSeconds ?? 0)))
+    }
+
+    /// The playhead, every loaded range, AVPlayer's own buffer verdicts, and the stream cache.
+    private var bufferSnapshot: String {
+        guard let item else {
+            return "no item"
+        }
+        let ranges = item.loadedTimeRanges.map { value in
+            let range = value.timeRangeValue
+            return String(format: "%.1f–%.1f", range.start.seconds, (range.start + range.duration).seconds)
+        }
+        var snapshot = String(format: "position %.1f, ", item.currentTime().seconds)
+            + "ranges [\(ranges.joined(separator: ", "))], "
+            + "likely to keep up \(item.isPlaybackLikelyToKeepUp), buffer empty \(item.isPlaybackBufferEmpty)"
+        if let ahead = cache?.statistics.cachedAheadSeconds {
+            snapshot += String(format: ", cached ahead %.1f s", ahead)
+        }
+        return snapshot
     }
 
     // MARK: - Controls
@@ -205,9 +262,11 @@ final class AVPlayerEngine: PlaybackEngine {
     }
 
     func seek(to seconds: Double) {
+        seeking = true
         onEvent?(.buffering(true, progress: nil))
         player.seek(to: CMTime(seconds: max(0, seconds), preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
             DispatchQueue.main.async {
+                self?.seeking = false
                 self?.lastBufferingState = nil
                 self?.timeControlChanged()
             }
@@ -266,6 +325,8 @@ final class AVPlayerEngine: PlaybackEngine {
         player.pause()
         player.replaceCurrentItem(with: nil)
         item = nil
+        cache?.close()
+        cache = nil
     }
 
     // MARK: - Stats
@@ -303,10 +364,23 @@ final class AVPlayerEngine: PlaybackEngine {
         }
 
         var buffer: [StatRow] = []
-        let ahead = bufferedAhead
+        let playerAhead = bufferedAhead
+        let cacheStatistics = cache?.statistics
+        let ahead = max(playerAhead, cacheStatistics?.cachedAheadSeconds ?? 0)
         buffer.append(StatRow(label: String(localized: "Buffered ahead"), value: String(format: "%.1f s", ahead), highlight: ahead > 10 ? .good : .warning))
         buffer.append(StatRow(label: String(localized: "Target buffer"), value: "\(Int(item.preferredForwardBufferDuration)) s"))
-        if let event = item.accessLog()?.events.last {
+        if let cacheStatistics {
+            buffer.append(StatRow(label: String(localized: "Player buffer"), value: String(format: "%.1f s", playerAhead)))
+            buffer.append(StatRow(label: String(localized: "Cache (forward)"), value: Format.bytes(Double(cacheStatistics.cachedAheadBytes))))
+            buffer.append(StatRow(label: String(localized: "Cache (total)"), value: Format.bytes(Double(cacheStatistics.cachedBytes))))
+            buffer.append(StatRow(label: String(localized: "Download rate"), value: Format.bitrate(cacheStatistics.downloadRate * 8)))
+            buffer.append(StatRow(label: String(localized: "Transferred"), value: Format.bytes(Double(cacheStatistics.downloadedBytes))))
+            buffer.append(StatRow(label: String(localized: "Reading"),
+                                  value: cacheStatistics.isDownloading ? String(localized: "Downloading") : String(localized: "Idle (buffer full)")))
+            buffer.append(StatRow(label: String(localized: "Network errors"),
+                                  value: cacheStatistics.lastError.map { String(localized: "\(cacheStatistics.errorCount) · last: \($0)") } ?? "0",
+                                  highlight: cacheStatistics.errorCount > 0 ? .warning : .good))
+        } else if let event = item.accessLog()?.events.last {
             if event.observedBitrate > 0 {
                 buffer.append(StatRow(label: String(localized: "Download rate"), value: Format.bitrate(event.observedBitrate)))
             }
@@ -349,8 +423,22 @@ final class AVPlayerEngine: PlaybackEngine {
                 channels: basic.map { Int($0.mChannelsPerFrame) },
                 sampleRate: basic?.mSampleRate
             ))
+            if track.mediaType == .video, cache != nil, (try? await track.load(.canProvideSampleCursors)) == true {
+                sampleTrack = track
+            }
         }
         trackInfo = info
+    }
+
+    /// Where the file stores the video at `seconds`, so the stream cache knows exactly which bytes the playhead needs.
+    private func byteOffset(at seconds: Double) -> Int? {
+        guard let sampleTrack, seconds.isFinite,
+              let cursor = sampleTrack.makeSampleCursor(presentationTimeStamp: CMTime(seconds: seconds, preferredTimescale: 600))
+        else {
+            return nil
+        }
+        let range = cursor.currentChunkStorageRange
+        return range.length > 0 ? Int(range.offset) : nil
     }
 
     private func fourCC(_ code: FourCharCode) -> String {
