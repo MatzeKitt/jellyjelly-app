@@ -236,6 +236,17 @@
     "%@ videos" : {
 
     },
+    "%lld · last: %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld · zuletzt: %2$@"
+          }
+        }
+      }
+    },
     "%lld ch" : {
       "comment" : "Number of audio channels",
       "extractionState" : "stale",
@@ -1889,17 +1900,6 @@
         }
       }
     },
-    "Download and install updates automatically" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Updates automatisch laden und installieren"
-          }
-        }
-      }
-    },
     "Download “%@”?" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1940,6 +1940,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Alle %1$lld herunterladen (%2$@)"
+          }
+        }
+      }
+    },
+    "Download and install updates automatically" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updates automatisch laden und installieren"
           }
         }
       }
@@ -3032,6 +3043,17 @@
         }
       }
     },
+    "Network errors" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Netzwerkfehler"
+          }
+        }
+      }
+    },
     "NEW" : {
       "localizations" : {
         "de" : {
@@ -3595,6 +3617,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Player"
+          }
+        }
+      }
+    },
+    "Player buffer" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Player-Puffer"
           }
         }
       }
