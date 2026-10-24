@@ -87,6 +87,7 @@ final class PlayerModel {
     @ObservationIgnored private var loadGeneration = 0
     @ObservationIgnored private var triedFallback = false
     @ObservationIgnored private var windowObservers: [NSObjectProtocol] = []
+    @ObservationIgnored private var workspaceObserver: NSObjectProtocol?
     @ObservationIgnored private var reportChain: Task<Void, Never>?
     @ObservationIgnored private var trickplayCache: [Int: CGImage] = [:]
     @ObservationIgnored private var pictureInPicture: PictureInPictureWindow?
@@ -367,6 +368,10 @@ final class PlayerModel {
         keyMonitor = nil
         windowObservers.forEach(NotificationCenter.default.removeObserver)
         windowObservers = []
+        if let workspaceObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(workspaceObserver)
+        }
+        workspaceObserver = nil
         endActivity()
         NSCursor.setHiddenUntilMouseMoves(false)
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
@@ -1083,18 +1088,25 @@ final class PlayerModel {
             center.addObserver(forName: NSWindow.didExitFullScreenNotification, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.isFullScreen = false }
             },
-            center.addObserver(forName: NSApplication.didResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.applicationDidResignActive() }
-            },
             center.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.applicationDidBecomeActive() }
             },
         ]
+        workspaceObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { [weak self] notification in
+            let application = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            MainActor.assumeIsolated { self?.otherApplicationDidActivate(application) }
+        }
     }
 
     /// Keeps a playing video in view while another app is in front.
-    private func applicationDidResignActive() {
-        guard app.settings.autoPictureInPicture, !isPictureInPicture, !isPaused, phase == .playing,
+    ///
+    /// Menu bar apps and other agents activate on interaction without covering the window,
+    /// so only regular apps trigger picture in picture.
+    private func otherApplicationDidActivate(_ application: NSRunningApplication?) {
+        guard let application, application != .current, application.activationPolicy == .regular,
+              app.settings.autoPictureInPicture, !isPictureInPicture, !isPaused, phase == .playing,
               engine?.videoView.window?.isVisible == true
         else {
             return
