@@ -62,7 +62,7 @@ jobs:
           # checkout turns annotated tags into lightweight ones, so fetch them again.
           git fetch --force --tags
           if [ "$(git cat-file -t "$GITHUB_REF_NAME")" = tag ]; then
-            git tag -l --format='%(contents:subject)%0a%0a%(contents:body)' "$GITHUB_REF_NAME" > notes.md
+            git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > notes.md
           elif previous=$(git describe --tags --abbrev=0 "$GITHUB_REF_NAME^" 2>/dev/null); then
             git log --no-merges --format='- %s' "$previous..$GITHUB_REF_NAME" > notes.md
           else
