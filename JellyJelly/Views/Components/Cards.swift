@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Hover effect
 
-/// The tvOS-like focus lift: scale, shadow, and an accent ring on hover.
+/// The tvOS-like focus lift: scale and an accent ring on hover.
 struct HoverLift: ViewModifier {
     var cornerRadius: CGFloat = Metrics.cardCorner
     var scale: CGFloat = 1.035
@@ -14,11 +14,13 @@ struct HoverLift: ViewModifier {
     func body(content: Content) -> some View {
         content
             .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(palette.accent.opacity(hovering ? 0.9 : 0), lineWidth: 2)
+                // Only the hovered card carries the ring, instead of every card drawing an invisible one.
+                if hovering {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .strokeBorder(palette.accent.opacity(0.9), lineWidth: 2)
+                }
             }
             .scaleEffect(hovering ? scale : 1)
-            .shadow(color: .black.opacity(hovering ? 0.5 : 0.25), radius: hovering ? 18 : 6, y: hovering ? 10 : 3)
             .animation(.spring(response: 0.28, dampingFraction: 0.8), value: hovering)
             .onHover { inside in
                 hovering = inside
@@ -74,9 +76,8 @@ struct WatchedBadge: View {
             .font(.system(size: 10, weight: .heavy))
             .foregroundStyle(active ? palette.onAccent : .white)
             .frame(width: 22, height: 22)
-            .background(active ? AnyShapeStyle(palette.accent) : AnyShapeStyle(.black.opacity(0.72)), in: Circle())
+            .background(Circle().fill((active ? AnyShapeStyle(palette.accent) : AnyShapeStyle(.black.opacity(0.72))).shadow(.drop(radius: 3))))
             .overlay(Circle().strokeBorder(.white.opacity(active ? 0 : 0.15), lineWidth: 1))
-            .shadow(radius: 3)
     }
 }
 
@@ -119,8 +120,7 @@ struct CountBadge: View {
             .foregroundStyle(palette.onAccent)
             .padding(.horizontal, 7)
             .frame(minWidth: 22, minHeight: 22)
-            .background(palette.accent, in: Capsule())
-            .shadow(radius: 3)
+            .background(Capsule().fill(palette.accent.shadow(.drop(radius: 3))))
     }
 }
 

@@ -6,63 +6,73 @@ struct ItemContextMenu: ViewModifier {
     @Environment(AppModel.self) private var app
 
     func body(content: Content) -> some View {
+        // The builder runs with every card's body, so the items live in their own view and are only built for the menu.
         content.contextMenu {
-            if item.isPlayable || item.isSeries || item.isSeason {
-                Button {
-                    app.play(item)
-                } label: {
-                    Label(item.hasResumePosition ? "Resume from \(Format.time(item.resumePosition))" : "Play", systemImage: "play.fill")
-                }
-                if item.hasResumePosition {
-                    Button {
-                        app.play(item, mode: .beginning)
-                    } label: {
-                        Label("Play from Beginning", systemImage: "backward.end.fill")
-                    }
-                }
-            }
+            ItemMenuItems(item: item, app: app)
+        }
+    }
+}
+
+private struct ItemMenuItems: View {
+    var item: BaseItem
+    var app: AppModel
+
+    var body: some View {
+        if item.isPlayable || item.isSeries || item.isSeason {
             Button {
-                app.open(item)
+                app.play(item)
             } label: {
-                Label("Show Details", systemImage: "info.circle")
-            }
-            if let channel = app.channel(for: item) {
-                Button {
-                    app.open(channel)
-                } label: {
-                    Label("Go to \(channel.displayName)", systemImage: "person.crop.circle")
-                }
-            } else if item.isEpisode, let seriesId = item.seriesId {
-                Button {
-                    app.open(BaseItem(id: seriesId, name: item.seriesName, type: ItemType.series))
-                } label: {
-                    Label("Go to Series", systemImage: "tv")
-                }
-            }
-            Divider()
-            Button {
-                app.togglePlayed(item)
-            } label: {
-                if item.isPlayed {
-                    Label("Mark as Unwatched", systemImage: "eye.slash")
-                } else {
-                    Label(item.isSeries || item.isSeason ? "Mark All as Watched" : "Mark as Watched", systemImage: "checkmark.circle")
-                }
-            }
-            Button {
-                app.toggleFavorite(item)
-            } label: {
-                Label(item.isFavorite ? "Remove from Favorites" : "Add to Favorites", systemImage: item.isFavorite ? "heart.slash" : "heart")
+                Label(item.hasResumePosition ? "Resume from \(Format.time(item.resumePosition))" : "Play", systemImage: "play.fill")
             }
             if item.hasResumePosition {
                 Button {
-                    app.removeFromContinueWatching(item)
+                    app.play(item, mode: .beginning)
                 } label: {
-                    Label("Remove from Continue Watching", systemImage: "xmark.circle")
+                    Label("Play from Beginning", systemImage: "backward.end.fill")
                 }
             }
-            downloadActions
         }
+        Button {
+            app.open(item)
+        } label: {
+            Label("Show Details", systemImage: "info.circle")
+        }
+        if let channel = app.channel(for: item) {
+            Button {
+                app.open(channel)
+            } label: {
+                Label("Go to \(channel.displayName)", systemImage: "person.crop.circle")
+            }
+        } else if item.isEpisode, let seriesId = item.seriesId {
+            Button {
+                app.open(BaseItem(id: seriesId, name: item.seriesName, type: ItemType.series))
+            } label: {
+                Label("Go to Series", systemImage: "tv")
+            }
+        }
+        Divider()
+        Button {
+            app.togglePlayed(item)
+        } label: {
+            if item.isPlayed {
+                Label("Mark as Unwatched", systemImage: "eye.slash")
+            } else {
+                Label(item.isSeries || item.isSeason ? "Mark All as Watched" : "Mark as Watched", systemImage: "checkmark.circle")
+            }
+        }
+        Button {
+            app.toggleFavorite(item)
+        } label: {
+            Label(item.isFavorite ? "Remove from Favorites" : "Add to Favorites", systemImage: item.isFavorite ? "heart.slash" : "heart")
+        }
+        if item.hasResumePosition {
+            Button {
+                app.removeFromContinueWatching(item)
+            } label: {
+                Label("Remove from Continue Watching", systemImage: "xmark.circle")
+            }
+        }
+        downloadActions
     }
 
     @ViewBuilder
