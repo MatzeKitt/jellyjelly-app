@@ -951,7 +951,7 @@ final class PlayerModel {
             sheet = cached
         } else {
             let url = client.trickplayTileURL(itemId: item.id, mediaSourceId: sourceId, width: width, index: sheetIndex)
-            guard let image = await ImageLoader.shared.image(for: url)?.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            guard let image = await ImageLoader.shared.image(for: url) else {
                 return nil
             }
             trickplayCache[sheetIndex] = image

@@ -115,9 +115,8 @@ struct DownloadBadge: View {
         content()
             .foregroundStyle(.white)
             .frame(width: 22, height: 22)
-            .background(.black.opacity(0.72), in: Circle())
+            .background(Circle().fill(.black.opacity(0.72).shadow(.drop(radius: 3))))
             .overlay(Circle().strokeBorder(.white.opacity(0.15), lineWidth: 1))
-            .shadow(radius: 3)
     }
 }
 

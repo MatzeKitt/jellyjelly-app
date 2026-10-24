@@ -58,6 +58,7 @@ struct LibraryView: View {
     @State private var genres: [String] = []
     @State private var selectedGenres: Set<String> = []
     @State private var filterText = ""
+    @State private var letters: [String] = []
 
     private var isYouTube: Bool { app.isYouTubeLibrary(library.id) }
     private var isFolderView: Bool {
@@ -74,9 +75,11 @@ struct LibraryView: View {
         }
     }
 
-    private var letters: [String] {
+    /// Updated after loading rather than computed, so re-rendering the page doesn't walk every loaded item.
+    private func updateLetters() {
         guard sort == .name else {
-            return []
+            letters = []
+            return
         }
         var seen: [String] = []
         for item in items {
@@ -85,7 +88,7 @@ struct LibraryView: View {
                 seen.append(letter)
             }
         }
-        return seen
+        letters = seen
     }
 
     var body: some View {
@@ -335,12 +338,15 @@ struct LibraryView: View {
         } else {
             items += response.items
         }
+        updateLetters()
         total = response.totalRecordCount ?? items.count
         loaded = true
     }
 
     private func loadMoreIfNeeded(_ item: BaseItem) {
-        guard !loading, items.count < total, let index = items.firstIndex(where: { $0.id == item.id }), index >= items.count - 20 else {
+        // Only the tail is searched, as this runs for every cell that scrolls into view. The next page is
+        // requested about ten rows ahead, so fast scrolling doesn't run into the end of the list.
+        guard !loading, items.count < total, items.suffix(60).contains(where: { $0.id == item.id }) else {
             return
         }
         Task { await load(reset: false) }
