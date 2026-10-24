@@ -81,6 +81,10 @@ struct PlayerView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: model.showStats)
         .preferredColorScheme(.dark)
+        .onAppear {
+            // A text field left focused behind the player would swallow the playback keys.
+            NSApp.mainWindow?.makeFirstResponder(nil)
+        }
     }
 }
 
