@@ -265,19 +265,26 @@ struct VideoCard: View {
                     }
                     .buttonStyle(.plain)
                 }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(item.displayName)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(palette.text)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(metaLine)
-                        .font(.system(size: 12))
-                        .foregroundStyle(palette.secondaryText)
-                        .lineLimit(1)
+                // The thumbnail plays the video, the title opens its details.
+                Button {
+                    app.open(item)
+                } label: {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(item.displayName)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(palette.text)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(metaLine)
+                            .font(.system(size: 12))
+                            .foregroundStyle(palette.secondaryText)
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
-                Spacer(minLength: 0)
+                .buttonStyle(.plain)
             }
         }
         .itemContextMenu(item)
@@ -339,7 +346,14 @@ struct LandscapeCard: View {
             .clipShape(RoundedRectangle(cornerRadius: Metrics.cardCorner, style: .continuous))
             .hoverLift { hovering = $0 }
 
-            Button(action: action) {
+            // A YouTube video's title opens its details, as on the video tiles.
+            Button {
+                if app.isYouTube(item) {
+                    app.open(item)
+                } else {
+                    action()
+                }
+            } label: {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(primaryTitle)
                         .font(.system(size: 14, weight: .semibold))
