@@ -1,6 +1,7 @@
 import AppKit
 import AVFoundation
 import os
+import VideoToolbox
 
 /// Apple's player, used for MP4/MOV files with codecs macOS decodes natively.
 @MainActor
@@ -49,6 +50,10 @@ final class AVPlayerEngine: PlaybackEngine {
     static let nativeVideoCodecs: Set<String> = ["h264", "avc", "avc1", "hevc", "h265", "hvc1", "hev1"]
     static let nativeAudioCodecs: Set<String> = ["aac", "ac3", "eac3", "mp3", "alac", "flac"]
 
+    /// macOS ships a hardware VP9 decoder but only offers it to AVFoundation on request.
+    /// Without it, VP9 videos stay black while their audio plays.
+    private static let registerSupplementalDecoders: Void = VTRegisterSupplementalVideoDecoderIfAvailable(kCMVideoCodecType_VP9)
+
     /// Whether AVFoundation can open this file directly, without help from the server.
     static func canPlay(_ source: MediaSource) -> Bool {
         let containers = (source.container ?? "").lowercased().split(separator: ",").map(String.init)
@@ -66,6 +71,7 @@ final class AVPlayerEngine: PlaybackEngine {
     }
 
     init() {
+        Self.registerSupplementalDecoders
         view.playerLayer.player = player
         player.automaticallyWaitsToMinimizeStalling = true
         player.preventsDisplaySleepDuringVideoPlayback = true
