@@ -45,7 +45,8 @@ final class PictureInPictureWindow: NSPanel {
         contentView = container
 
         contentAspectRatio = NSSize(width: aspectRatio, height: 1)
-        if setFrameUsingName(Self.frameName) {
+        // Forced, as AppKit otherwise only restores the position of a window that isn't `.resizable`.
+        if setFrameUsingName(Self.frameName, force: true) {
             fit(aspectRatio: aspectRatio)
         } else if let visible = (screen ?? NSScreen.main)?.visibleFrame {
             setFrameOrigin(NSPoint(x: visible.maxX - frame.width - Self.margin, y: visible.minY + Self.margin))
