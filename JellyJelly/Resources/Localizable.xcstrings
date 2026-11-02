@@ -1210,13 +1210,13 @@
         }
       }
     },
-    "Automatic uses AVPlayer for MP4/MOV with H.264 or HEVC and mpv for everything else. Both play the original file; the server never transcodes." : {
+    "Automatic uses AVPlayer, which needs fewer resources, whenever macOS can decode the file itself, and mpv for everything else, like MKV and WebM files. Both play the original file; the server never transcodes." : {
       "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatisch nutzt AVPlayer für MP4/MOV mit H.264 oder HEVC und mpv für alles andere. Beide spielen die Originaldatei ab, der Server transkodiert nie."
+            "value" : "Automatisch nutzt AVPlayer, der weniger Ressourcen braucht, wann immer macOS die Datei selbst dekodieren kann, und mpv für alles andere, etwa MKV- und WebM-Dateien. Beide spielen die Originaldatei ab, der Server transkodiert nie."
           }
         }
       }
@@ -2988,13 +2988,13 @@
         }
       }
     },
-    "mpv is not installed, so only MP4/MOV files with H.264 or HEVC can be played. Install it with `brew install mpv`." : {
+    "mpv is not installed, so only MP4/MOV files with codecs macOS decodes itself can be played. Install it with `brew install mpv`." : {
       "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "mpv ist nicht installiert, daher lassen sich nur MP4/MOV-Dateien mit H.264 oder HEVC abspielen. Installiere es mit `brew install mpv`."
+            "value" : "mpv ist nicht installiert, daher lassen sich nur MP4/MOV-Dateien mit Codecs abspielen, die macOS selbst dekodiert. Installiere es mit `brew install mpv`."
           }
         }
       }

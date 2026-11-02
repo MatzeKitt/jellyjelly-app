@@ -47,14 +47,20 @@ final class AVPlayerEngine: PlaybackEngine {
     }
 
     static let nativeContainers: Set<String> = ["mp4", "m4v", "mov"]
-    static let nativeVideoCodecs: Set<String> = ["h264", "avc", "avc1", "hevc", "h265", "hvc1", "hev1"]
-    static let nativeAudioCodecs: Set<String> = ["aac", "ac3", "eac3", "mp3", "alac", "flac"]
+    static let nativeVideoCodecs: Set<String> = ["h264", "avc", "avc1", "hevc", "h265", "hvc1", "hev1", "mpeg4", "prores"]
+    static let nativeAudioCodecs: Set<String> = ["aac", "ac3", "eac3", "mp3", "alac", "flac", "opus"]
+    /// Codecs AVFoundation only decodes on Macs with a hardware decoder for them, like AV1 from M3 on.
+    static let hardwareVideoCodecs: [String: CMVideoCodecType] = [
+        "vp9": kCMVideoCodecType_VP9, "vp09": kCMVideoCodecType_VP9,
+        "av1": kCMVideoCodecType_AV1, "av01": kCMVideoCodecType_AV1,
+    ]
 
     /// macOS ships a hardware VP9 decoder but only offers it to AVFoundation on request.
     /// Without it, VP9 videos stay black while their audio plays.
     private static let registerSupplementalDecoders: Void = VTRegisterSupplementalVideoDecoderIfAvailable(kCMVideoCodecType_VP9)
 
     /// Whether AVFoundation can open this file directly, without help from the server.
+    /// It needs fewer resources than mpv, so it plays everything it supports.
     static func canPlay(_ source: MediaSource) -> Bool {
         let containers = (source.container ?? "").lowercased().split(separator: ",").map(String.init)
         guard containers.contains(where: nativeContainers.contains) else {
@@ -62,12 +68,26 @@ final class AVPlayerEngine: PlaybackEngine {
         }
         let streams = source.mediaStreams ?? []
         guard let video = streams.first(where: { $0.type == "Video" }),
-              nativeVideoCodecs.contains((video.codec ?? "").lowercased())
+              canDecode(video: (video.codec ?? "").lowercased())
         else {
             return false
         }
-        let audio = streams.filter { $0.type == "Audio" }
-        return audio.allSatisfy { nativeAudioCodecs.contains(($0.codec ?? "").lowercased()) }
+        // AVPlayer silently drops audio tracks it can't decode, so those need mpv.
+        return streams.filter { $0.type == "Audio" }.allSatisfy { stream in
+            let codec = (stream.codec ?? "").lowercased()
+            return nativeAudioCodecs.contains(codec) || codec.hasPrefix("pcm_")
+        }
+    }
+
+    private static func canDecode(video codec: String) -> Bool {
+        if nativeVideoCodecs.contains(codec) {
+            return true
+        }
+        guard let type = hardwareVideoCodecs[codec] else {
+            return false
+        }
+        registerSupplementalDecoders
+        return VTIsHardwareDecodeSupported(type)
     }
 
     init() {
