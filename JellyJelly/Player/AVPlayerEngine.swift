@@ -79,26 +79,42 @@ final class AVPlayerEngine: PlaybackEngine {
     }
 
     func load(_ source: PlaybackSource) {
-        let cache = source.url.isFileURL ? nil : StreamCache(url: source.url, headers: source.headers, readAheadSeconds: source.bufferAheadSeconds)
-        self.cache = cache
         readAheadSeconds = Double(max(30, source.bufferAheadSeconds))
-        let asset = AVURLAsset(url: cache?.assetURL ?? source.url, options: [
-            "AVURLAssetHTTPHeaderFieldsKey": source.headers,
-            AVURLAssetPreferPreciseDurationAndTimingKey: false,
-        ])
-        if let cache {
-            asset.resourceLoader.setDelegate(cache, queue: cache.queue)
-        }
-        let item = AVPlayerItem(asset: asset)
-        item.preferredForwardBufferDuration = TimeInterval(source.bufferAheadSeconds)
-        item.canUseNetworkResourcesForLiveStreamingWhilePaused = true
-        self.item = item
         startAt = source.startAt
         player.volume = Float(source.volume / 100)
         if !source.preferredAudioLanguage.isEmpty {
             let criteria = AVPlayerMediaSelectionCriteria(preferredLanguages: [source.preferredAudioLanguage], preferredMediaCharacteristics: nil)
             player.setMediaSelectionCriteria(criteria, forMediaCharacteristic: .audible)
         }
+        guard !source.url.isFileURL else {
+            open(source.url, source: source)
+            return
+        }
+        let cache = StreamCache(url: source.url, headers: source.headers, readAheadSeconds: source.bufferAheadSeconds)
+        self.cache = cache
+        Task { [weak self] in
+            let url = await cache.start()
+            guard let self, self.cache === cache else {
+                return
+            }
+            if url == nil {
+                // Without its server, the cache can't feed AVPlayer, which then streams from the server itself.
+                cache.close()
+                self.cache = nil
+            }
+            open(url ?? source.url, source: source)
+        }
+    }
+
+    private func open(_ url: URL, source: PlaybackSource) {
+        let asset = AVURLAsset(url: url, options: [
+            "AVURLAssetHTTPHeaderFieldsKey": source.headers,
+            AVURLAssetPreferPreciseDurationAndTimingKey: false,
+        ])
+        let item = AVPlayerItem(asset: asset)
+        item.preferredForwardBufferDuration = TimeInterval(source.bufferAheadSeconds)
+        item.canUseNetworkResourcesForLiveStreamingWhilePaused = true
+        self.item = item
         observe(item)
         player.replaceCurrentItem(with: item)
 
@@ -166,7 +182,8 @@ final class AVPlayerEngine: PlaybackEngine {
                     return
                 }
                 self.onEvent?(.time(time.seconds))
-                if let cache = self.cache, let duration = self.item?.duration.seconds {
+                // While seeking, the time is still that of the old position.
+                if let cache = self.cache, !self.seeking, let duration = self.item?.duration.seconds {
                     cache.updatePlayhead(time.seconds, duration: duration,
                                          byteOffset: self.byteOffset(at: time.seconds),
                                          readAheadByteOffset: self.byteOffset(at: min(duration, time.seconds + self.readAheadSeconds)))
@@ -183,8 +200,11 @@ final class AVPlayerEngine: PlaybackEngine {
             let duration = item.duration.seconds
             onEvent?(.loaded(duration: duration.isFinite ? duration : nil))
             if startAt > 0 {
+                seeking = true
+                cache?.seek()
                 player.seek(to: CMTime(seconds: startAt, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
                     DispatchQueue.main.async {
+                        self?.seeking = false
                         self?.player.playImmediately(atRate: self?.rate ?? 1)
                     }
                 }
@@ -269,6 +289,7 @@ final class AVPlayerEngine: PlaybackEngine {
 
     func seek(to seconds: Double) {
         seeking = true
+        cache?.seek()
         onEvent?(.buffering(true, progress: nil))
         player.seek(to: CMTime(seconds: max(0, seconds), preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
             DispatchQueue.main.async {
