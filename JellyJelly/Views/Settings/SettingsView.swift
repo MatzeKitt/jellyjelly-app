@@ -265,9 +265,9 @@ struct SettingsView: View {
 
     private var engineDetail: LocalizedStringKey {
         if MPVEngine.isAvailable {
-            return "Automatic uses AVPlayer for MP4/MOV with H.264 or HEVC and mpv for everything else. Both play the original file; the server never transcodes."
+            return "Automatic uses AVPlayer, which needs fewer resources, whenever macOS can decode the file itself, and mpv for everything else, like MKV and WebM files. Both play the original file; the server never transcodes."
         }
-        return "mpv is not installed, so only MP4/MOV files with H.264 or HEVC can be played. Install it with `brew install mpv`."
+        return "mpv is not installed, so only MP4/MOV files with codecs macOS decodes itself can be played. Install it with `brew install mpv`."
     }
 
     /// Starts a fresh instance, then quits this one; quitting saves the resume point of a running video.
