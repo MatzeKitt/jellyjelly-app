@@ -3742,6 +3742,17 @@
         }
       }
     },
+    "Recently Watched" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt gesehen"
+          }
+        }
+      }
+    },
     "Refill target" : {
       "extractionState" : "stale",
       "localizations" : {

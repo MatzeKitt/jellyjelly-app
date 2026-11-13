@@ -7,6 +7,7 @@ struct SubscriptionsView: View {
 
     @State private var feed = FeedModel(pageSize: 60)
     @State private var inProgress: [BaseItem] = []
+    @State private var recentlyWatched: [BaseItem] = []
 
     var body: some View {
         ScrollView {
@@ -24,6 +25,16 @@ struct SubscriptionsView: View {
                 }
 
                 FeedSection(feed: feed, limit: nil)
+
+                if !recentlyWatched.isEmpty {
+                    Shelf(title: String(localized: "Recently Watched")) {
+                        ForEach(recentlyWatched) { item in
+                            LandscapeCard(item: item, width: 300) {
+                                app.play(item)
+                            }
+                        }
+                    }
+                }
             }
             .padding(.bottom, 60)
         }
@@ -35,6 +46,7 @@ struct SubscriptionsView: View {
         .onChange(of: app.lastChange) { _, change in
             feed.apply(change, includeWatched: app.settings.feedIncludeWatched)
             inProgress.apply(change)
+            recentlyWatched.apply(change)
         }
     }
 
@@ -48,6 +60,28 @@ struct SubscriptionsView: View {
             resume += (try? await client.resumeItems(limit: 20, parentId: library.id)) ?? []
         }
         inProgress = resume
+        recentlyWatched = await loadRecentlyWatched(client)
+    }
+
+    /// The videos played last across all YouTube libraries, whether finished or not.
+    private func loadRecentlyWatched(_ client: JellyfinClient) async -> [BaseItem] {
+        var query = ItemQuery()
+        query.includeItemTypes = [ItemType.episode, ItemType.video]
+        query.sortBy = ["DatePlayed"]
+        query.sortOrder = ["Descending"]
+        query.limit = 20
+        query.enableTotalRecordCount = false
+        var items: [BaseItem] = []
+        // `parentId` takes a single ID, so several libraries are fetched and merged.
+        for library in app.youTubeLibraries {
+            query.parentId = library.id
+            items += (try? await client.items(query).items) ?? []
+        }
+        // Videos never played sort last and only show up where fewer than 20 videos were played.
+        return Array(items
+            .filter { $0.userData?.lastPlayedDate != nil }
+            .sorted { ($0.userData?.lastPlayedDate ?? .distantPast) > ($1.userData?.lastPlayedDate ?? .distantPast) }
+            .prefix(20))
     }
 }
 
