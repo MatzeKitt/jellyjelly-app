@@ -81,10 +81,12 @@ struct LibraryView: View {
             letters = []
             return
         }
+        // A letter is only added once, so the index stays usable even where the server's collation
+        // doesn't group letters the way indexLetter does.
         var seen: [String] = []
         for item in items {
             let letter = indexLetter(item)
-            if seen.last != letter {
+            if !seen.contains(letter) {
                 seen.append(letter)
             }
         }
@@ -288,8 +290,10 @@ struct LibraryView: View {
         }
     }
 
+    /// Based on the sort name the server orders by, so "The Accountant" is filed under A, not T.
     private func indexLetter(_ item: BaseItem) -> String {
-        guard let first = (item.displayName.uppercased()).first else {
+        let name = item.sortName ?? item.displayName
+        guard let first = name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil).uppercased().first else {
             return "#"
         }
         return first.isLetter ? String(first) : "#"
@@ -308,6 +312,9 @@ struct LibraryView: View {
             query.includeItemTypes = itemTypes
         }
         query.sortBy = sort.sortBy
+        if sort == .name {
+            query.fields.append("SortName")
+        }
         query.sortOrder = Array(repeating: descending ? "Descending" : "Ascending", count: sort.sortBy.count)
         if unwatchedOnly {
             query.isPlayed = false
