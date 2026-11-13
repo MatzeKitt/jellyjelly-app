@@ -5,6 +5,8 @@ import Foundation
 struct BaseItem: Codable, Identifiable, Hashable, Sendable {
     var id: String
     var name: String?
+    /// The name the server sorts by, e.g. "accountant" for "The Accountant". Only sent when requested.
+    var sortName: String?
     var originalTitle: String?
     var serverId: String?
     var type: String?
