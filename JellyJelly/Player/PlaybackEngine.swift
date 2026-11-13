@@ -27,6 +27,8 @@ struct PlaybackSource {
     var preferredSubtitleLanguage: String
     var subtitlesEnabled: Bool
     var volume: Double
+    /// An HLS stream the server transcodes, rather than a single file.
+    var isTranscoded = false
 }
 
 struct TrackOption: Identifiable, Hashable {

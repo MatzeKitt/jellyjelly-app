@@ -5,7 +5,8 @@ A native macOS client for Jellyfin, modeled on [JellyGoose](https://jellygoose.a
 ## Features
 
 - **Subscription feed on Home**: new and unwatched videos from all channels, newest upload first (Jellyfin `PremiereDate`, falling back to the date added), with a channel strip to filter and unwatched counts.
-- **Direct Play only**: the player always requests the original file (`/Videos/{id}/stream?static=true`), and the server never transcodes. Stats show the server's reported play method, so transcoding would be visible immediately.
+- **Direct Play first**: the player requests the original file (`/Videos/{id}/stream?static=true`), so the server doesn't transcode. Stats show the server's reported play method, so transcoding would be visible immediately.
+- **Optional server transcoding**: for files neither engine can decode, like MKV or VP9 without mpv installed, turn on Settings → Playback → Allow server transcoding. The server then streams the file as HLS for AVPlayer, copying the video and audio streams AVPlayer can decode and converting the rest to H.264 and AAC. Downloads always play the original file. Your Jellyfin user needs the permission to play media that requires transcoding.
 - **Two engines**, picked per file:
   - AVPlayer for MP4/MOV with H.264/HEVC and native audio
   - libmpv for everything else (MKV, WebM, VP9, AV1, Opus, PGS, …)
@@ -27,7 +28,7 @@ A native macOS client for Jellyfin, modeled on [JellyGoose](https://jellygoose.a
   brew install mpv
   ```
 
-  libmpv is loaded at runtime from `JellyJelly.app/Contents/Frameworks`, `/opt/homebrew/lib`, or `/usr/local/lib`. Without it, the app still runs and plays MP4/MOV files with AVPlayer.
+  libmpv is loaded at runtime from `JellyJelly.app/Contents/Frameworks`, `/opt/homebrew/lib`, or `/usr/local/lib`. Without it, the app still runs and plays MP4/MOV files with AVPlayer, and everything else if you allow server transcoding.
 
 ## Build
 
