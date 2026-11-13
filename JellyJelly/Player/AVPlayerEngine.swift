@@ -106,7 +106,8 @@ final class AVPlayerEngine: PlaybackEngine {
             let criteria = AVPlayerMediaSelectionCriteria(preferredLanguages: [source.preferredAudioLanguage], preferredMediaCharacteristics: nil)
             player.setMediaSelectionCriteria(criteria, forMediaCharacteristic: .audible)
         }
-        guard !source.url.isFileURL else {
+        // The stream cache downloads single files; AVPlayer loads HLS segments itself.
+        guard !source.url.isFileURL, !source.isTranscoded else {
             open(source.url, source: source)
             return
         }
@@ -404,6 +405,11 @@ final class AVPlayerEngine: PlaybackEngine {
                     audio.append(StatRow(label: String(localized: "Bitrate"), value: Format.bitrate(Double(track.dataRate))))
                 }
             }
+        }
+        if !trackInfo.contains(where: \.isVideo), item.presentationSize.width > 0 {
+            // HLS streams don't expose their tracks, but the item knows the size of the decoded video.
+            let size = item.presentationSize
+            video.append(StatRow(label: String(localized: "Resolution"), value: "\(Int(size.width))×\(Int(size.height))"))
         }
         if let event = item.accessLog()?.events.last, event.numberOfDroppedVideoFrames >= 0 {
             video.append(StatRow(label: String(localized: "Dropped frames"), value: "\(event.numberOfDroppedVideoFrames)",

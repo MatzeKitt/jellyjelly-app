@@ -136,6 +136,8 @@ final class AppSettings {
     var hideYouTubeFromShelves: Bool { didSet { defaults.set(hideYouTubeFromShelves, forKey: "hideYouTubeFromShelves") } }
 
     var enginePreference: PlayerEnginePreference { didSet { defaults.set(enginePreference.rawValue, forKey: "enginePreference") } }
+    /// Lets the server transcode files the selected player can't decode, instead of failing to play them.
+    var allowTranscoding: Bool { didSet { defaults.set(allowTranscoding, forKey: "allowTranscoding") } }
     var resumeBehavior: ResumeBehavior { didSet { defaults.set(resumeBehavior.rawValue, forKey: "resumeBehavior") } }
     /// How far ahead the player buffers, in seconds.
     var bufferAheadSeconds: Int { didSet { defaults.set(bufferAheadSeconds, forKey: "bufferAheadSeconds") } }
@@ -165,6 +167,7 @@ final class AppSettings {
             "cacheSizeMB": 1024,
             "prebufferSeconds": 3,
             "hardwareDecoding": true,
+            "allowTranscoding": false,
             "autoplayNext": true,
             "openPlayerFullScreen": false,
             "autoPictureInPicture": true,
@@ -186,6 +189,7 @@ final class AppSettings {
         feedIncludeWatched = defaults.bool(forKey: "feedIncludeWatched")
         hideYouTubeFromShelves = defaults.bool(forKey: "hideYouTubeFromShelves")
         enginePreference = PlayerEnginePreference(rawValue: defaults.string(forKey: "enginePreference") ?? "") ?? .automatic
+        allowTranscoding = defaults.bool(forKey: "allowTranscoding")
         resumeBehavior = ResumeBehavior(rawValue: defaults.string(forKey: "resumeBehavior") ?? "") ?? .ask
         bufferAheadSeconds = defaults.integer(forKey: "bufferAheadSeconds")
         cacheSizeMB = defaults.integer(forKey: "cacheSizeMB")

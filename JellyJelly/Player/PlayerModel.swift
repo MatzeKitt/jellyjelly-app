@@ -23,6 +23,8 @@ final class PlayerModel {
     private(set) var queue: [BaseItem]
     private(set) var mediaSource: MediaSource?
     private(set) var playSessionId: String?
+    /// The server's HLS stream while it transcodes the file for AVPlayer; `nil` for Direct Play.
+    private(set) var transcodingURL: URL?
     /// The downloaded copy being played, if any.
     private(set) var offlineCopy: OfflineCopy?
     private(set) var chapters: [ChapterMark] = []
@@ -86,6 +88,9 @@ final class PlayerModel {
     @ObservationIgnored private var closed = false
     @ObservationIgnored private var loadGeneration = 0
     @ObservationIgnored private var triedFallback = false
+    /// The audio track the server transcodes, since the HLS stream only carries that one.
+    @ObservationIgnored private var transcodedAudioIndex: Int?
+    @ObservationIgnored private var transcodingReason = ""
     @ObservationIgnored private var windowObservers: [NSObjectProtocol] = []
     @ObservationIgnored private var workspaceObserver: NSObjectProtocol?
     @ObservationIgnored private var reportChain: Task<Void, Never>?
@@ -172,7 +177,15 @@ final class PlayerModel {
                 return
             }
             mediaSource = source
-            startEngine(for: source, preferMPV: false)
+            if let reason = reasonToTranscode(source) {
+                transcodingReason = reason
+                await startTranscoding()
+                guard isCurrentLoad(generation) else {
+                    return
+                }
+            } else {
+                startEngine(for: source, preferMPV: false)
+            }
             updateNowPlaying()
             Task {
                 let loaded = (try? await client.mediaSegments(itemId: details.id)) ?? []
@@ -219,7 +232,7 @@ final class PlayerModel {
             self?.handle(event)
         }
 
-        let streamURL = offlineCopy?.fileURL ?? client.directStreamURL(itemId: item.id, mediaSource: source, playSessionId: playSessionId)
+        let streamURL = offlineCopy?.fileURL ?? transcodingURL ?? client.directStreamURL(itemId: item.id, mediaSource: source, playSessionId: playSessionId)
         var external: [ExternalSubtitle] = []
         if engine.rendersSubtitles {
             for stream in source.mediaStreams ?? [] where stream.type == "Subtitle" && stream.isExternal == true {
@@ -257,7 +270,8 @@ final class PlayerModel {
             preferredAudioLanguage: settings.preferredAudioLanguage,
             preferredSubtitleLanguage: settings.preferredSubtitleLanguage,
             subtitlesEnabled: settings.subtitlesEnabled,
-            volume: volume
+            volume: volume,
+            isTranscoded: offlineCopy == nil && transcodingURL != nil
         ))
         engine.setSubtitleScale(settings.subtitleScale)
         if rate != 1 {
@@ -278,6 +292,9 @@ final class PlayerModel {
     }
 
     private func makeEngine(for source: MediaSource, preferMPV: Bool) -> (PlaybackEngine, String) {
+        if transcodingURL != nil {
+            return (AVPlayerEngine(), String(localized: "\(transcodingReason); the server transcodes"))
+        }
         let native = AVPlayerEngine.canPlay(source)
         let preference = preferMPV ? .mpv : app.settings.enginePreference
         switch preference {
@@ -297,6 +314,74 @@ final class PlayerModel {
             }
             return (AVPlayerEngine(), String(localized: "mpv is not installed; trying AVPlayer"))
         }
+    }
+
+    /// Why the server has to transcode the file, or `nil` if it plays as it is.
+    /// Only when transcoding is allowed and neither AVPlayer nor mpv can decode the file.
+    private func reasonToTranscode(_ source: MediaSource) -> String? {
+        guard app.settings.allowTranscoding, offlineCopy == nil, !MPVEngine.isAvailable, !AVPlayerEngine.canPlay(source) else {
+            return nil
+        }
+        return String(localized: "mpv is not installed")
+    }
+
+    /// Asks the server to transcode the current file into HLS and plays that with AVPlayer.
+    ///
+    /// - Parameter audioStreamIndex: The audio track to transcode. Without it, the preferred language or the server's default.
+    private func startTranscoding(audioStreamIndex: Int? = nil) async {
+        guard let source = mediaSource else {
+            return
+        }
+        let generation = loadGeneration
+        let requestedAudio = audioStreamIndex ?? preferredAudioStreamIndex(in: source)
+        do {
+            let info = try await client.playbackInfo(itemId: item.id, mediaSourceId: source.id, transcode: true, audioStreamIndex: requestedAudio)
+            guard isCurrentLoad(generation) else {
+                return
+            }
+            guard let transcoded = info.mediaSources?.first(where: { $0.id == source.id }) ?? info.mediaSources?.first,
+                  let url = transcoded.transcodingUrl.flatMap(client.transcodingURL)
+            else {
+                fail(String(localized: "The server didn't offer a transcoded stream. In Jellyfin, check that your user may play media that requires transcoding."))
+                return
+            }
+            playSessionId = info.playSessionId ?? playSessionId
+            transcodingURL = url
+            transcodedAudioIndex = requestedAudio ?? transcoded.defaultAudioStreamIndex
+            startEngine(for: source, preferMPV: false)
+        } catch {
+            if isCurrentLoad(generation) {
+                fail(error.localizedDescription)
+            }
+        }
+    }
+
+    private func preferredAudioStreamIndex(in source: MediaSource) -> Int? {
+        let language = app.settings.preferredAudioLanguage
+        guard !language.isEmpty else {
+            return nil
+        }
+        return source.mediaStreams?.first { $0.type == "Audio" && ($0.language ?? "").hasPrefix(language) }?.index
+    }
+
+    /// The transcoded stream only carries one audio track, so another one needs a new stream from the server.
+    private func switchTranscodedAudio(to index: Int) {
+        guard index != transcodedAudioIndex else {
+            return
+        }
+        // Stopped first, so the old stream ending doesn't count as a failure.
+        engine?.stop()
+        engine = nil
+        startAt = position
+        phase = .loading
+        isBuffering = true
+        let previousSession = playSessionId
+        tasks.append(Task {
+            if let previousSession {
+                await client.stopTranscoding(playSessionId: previousSession)
+            }
+            await startTranscoding(audioStreamIndex: index)
+        })
     }
 
     static func subtitleFormat(_ codec: String?) -> String {
@@ -432,12 +517,21 @@ final class PlayerModel {
         case .ended:
             ended()
         case let .failed(message):
-            if !triedFallback, engineKind == .avPlayer, MPVEngine.isAvailable, let source = mediaSource {
-                // AVPlayer rejected the file; mpv decodes nearly everything.
-                triedFallback = true
-                startAt = max(startAt, position)
-                startEngine(for: source, preferMPV: true)
-                return
+            if !triedFallback, engineKind == .avPlayer, transcodingURL == nil, let source = mediaSource {
+                if MPVEngine.isAvailable {
+                    // AVPlayer rejected the file; mpv decodes nearly everything.
+                    triedFallback = true
+                    startAt = max(startAt, position)
+                    startEngine(for: source, preferMPV: true)
+                    return
+                }
+                if app.settings.allowTranscoding, offlineCopy == nil {
+                    triedFallback = true
+                    startAt = max(startAt, position)
+                    transcodingReason = String(localized: "AVPlayer could not open the file")
+                    tasks.append(Task { await startTranscoding() })
+                    return
+                }
             }
             fail(message)
         }
@@ -567,6 +661,12 @@ final class PlayerModel {
     }
 
     func selectAudio(_ id: String) {
+        if transcodingURL != nil {
+            if let index = Int(id) {
+                switchTranscodedAudio(to: index)
+            }
+            return
+        }
         engine?.selectAudioTrack(id)
         refreshTracks()
     }
@@ -675,6 +775,8 @@ final class PlayerModel {
         startAt = next.hasResumePosition ? next.resumePosition : 0
         mediaSource = nil
         playSessionId = nil
+        transcodingURL = nil
+        transcodedAudioIndex = nil
         offlineCopy = nil
         position = 0
         duration = next.duration ?? 0
@@ -706,7 +808,7 @@ final class PlayerModel {
             subtitleOptions = []
             return
         }
-        audioOptions = engine.audioTracks
+        audioOptions = transcodingURL == nil ? engine.audioTracks : transcodedAudioOptions
         if engine.rendersSubtitles {
             subtitleOptions = engine.subtitleTracks
         } else {
@@ -722,6 +824,16 @@ final class PlayerModel {
                 return TrackOption(id: String(index), title: stream.displayTitle ?? stream.title ?? String(localized: "Subtitle \(index)"),
                                    detail: detail.joined(separator: " · "), isSelected: appSubtitleIndex == index)
             }
+        }
+    }
+
+    /// Every audio track of the file, since the server can transcode any of them.
+    private var transcodedAudioOptions: [TrackOption] {
+        (mediaSource?.mediaStreams ?? []).filter { $0.type == "Audio" && $0.index != nil }.map { stream in
+            let index = stream.index ?? -1
+            let language = stream.language.map { Locale.current.localizedString(forLanguageCode: $0) ?? $0 }
+            return TrackOption(id: String(index), title: stream.displayTitle ?? stream.title ?? String(localized: "Audio \(index)"),
+                               detail: language, isSelected: transcodedAudioIndex == index)
         }
     }
 
@@ -808,7 +920,8 @@ final class PlayerModel {
             isMuted: isMuted,
             volumeLevel: Int(volume),
             canSeek: true,
-            playMethod: "DirectPlay"
+            playMethod: transcodingURL == nil ? "DirectPlay" : "Transcode",
+            audioStreamIndex: transcodingURL == nil ? nil : transcodedAudioIndex
         )
     }
 
@@ -865,12 +978,26 @@ final class PlayerModel {
         }
     }
 
+    /// What the server does with each stream, and why, e.g. "video copied · AAC · AudioCodecNotSupported".
+    private static func transcodingSummary(_ info: TranscodingInfo) -> String {
+        let video = info.isVideoDirect == true ? String(localized: "video copied") : (info.videoCodec ?? "?").uppercased()
+        let audio = info.isAudioDirect == true ? String(localized: "audio copied") : (info.audioCodec ?? "?").uppercased()
+        return ([video, audio] + (info.transcodeReasons ?? [])).joined(separator: " · ")
+    }
+
     func refreshStats() {
         var sections: [StatSection] = []
         var playback: [StatRow] = []
         if offlineCopy != nil {
             // Nothing is streamed, so there is no server play method to verify.
             playback.append(StatRow(label: String(localized: "Play method"), value: String(localized: "Downloaded file (offline)"), highlight: .good))
+        } else if transcodingURL != nil {
+            playback.append(StatRow(label: String(localized: "Play method"), value: String(localized: "Transcoding (server, HLS)")))
+            if let transcoding = serverTranscoding {
+                playback.append(StatRow(label: String(localized: "Server"), value: Self.transcodingSummary(transcoding)))
+            } else {
+                playback.append(StatRow(label: String(localized: "Server"), value: String(localized: "Verifying…")))
+            }
         } else {
             playback.append(StatRow(label: String(localized: "Play method"), value: String(localized: "Direct Play (original file, static stream)"), highlight: .good))
             if let transcoding = serverTranscoding {

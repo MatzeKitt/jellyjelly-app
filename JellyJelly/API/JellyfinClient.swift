@@ -309,27 +309,60 @@ final class JellyfinClient: @unchecked Sendable {
 
     // MARK: - Playback
 
-    func playbackInfo(itemId: String, mediaSourceId: String? = nil) async throws -> PlaybackInfoResponse {
+    /// - Parameters:
+    ///   - transcode: Asks for an HLS stream AVPlayer can decode instead of the original file.
+    ///     The server then returns a `transcodingUrl` on the media source.
+    ///   - audioStreamIndex: The audio track to transcode. Without it, the server picks the default.
+    func playbackInfo(itemId: String, mediaSourceId: String? = nil, transcode: Bool = false, audioStreamIndex: Int? = nil) async throws -> PlaybackInfoResponse {
         var body: [String: Any] = [
             "UserId": userId ?? "",
-            "EnableDirectPlay": true,
+            "EnableDirectPlay": !transcode,
             "EnableDirectStream": false,
-            "EnableTranscoding": false,
+            "EnableTranscoding": transcode,
             "MaxStreamingBitrate": 2_000_000_000,
-            "DeviceProfile": Self.directPlayProfile,
+            "DeviceProfile": transcode ? Self.transcodingProfile : Self.directPlayProfile,
         ]
         if let mediaSourceId {
             body["MediaSourceId"] = mediaSourceId
         }
+        if transcode {
+            body["AudioStreamIndex"] = audioStreamIndex
+            // The app renders subtitles itself, so none may be burned into the video.
+            body["SubtitleStreamIndex"] = -1
+        }
         return try await send("POST", "/Items/\(itemId)/PlaybackInfo", query: [
             userQuery,
             URLQueryItem(name: "mediaSourceId", value: mediaSourceId),
-            URLQueryItem(name: "enableDirectPlay", value: "true"),
+            URLQueryItem(name: "enableDirectPlay", value: String(!transcode)),
             URLQueryItem(name: "enableDirectStream", value: "false"),
-            URLQueryItem(name: "enableTranscoding", value: "false"),
+            URLQueryItem(name: "enableTranscoding", value: String(transcode)),
             URLQueryItem(name: "autoOpenLiveStream", value: "true"),
         ], json: body)
     }
+
+    /// A device profile for AVPlayer that only accepts HLS from the server. Video and audio
+    /// streams AVPlayer decodes are copied as they are; everything else becomes H.264 and AAC.
+    static let transcodingProfile: [String: Any] = [
+        "Name": "JellyJelly Transcoding",
+        "MaxStreamingBitrate": 2_000_000_000,
+        "MaxStaticBitrate": 2_000_000_000,
+        "DirectPlayProfiles": [],
+        "TranscodingProfiles": [[
+            "Type": "Video",
+            "Context": "Streaming",
+            "Protocol": "hls",
+            // Fragmented MP4, since AVPlayer doesn't accept HEVC in MPEG-TS segments.
+            "Container": "mp4",
+            "VideoCodec": "h264,hevc",
+            "AudioCodec": "aac,ac3,eac3,mp3,alac",
+            "MaxAudioChannels": "6",
+            "MinSegments": 1,
+            "BreakOnNonKeyFrames": true,
+        ]],
+        "ContainerProfiles": [],
+        "CodecProfiles": [],
+        "SubtitleProfiles": ["srt", "subrip", "ass", "ssa", "vtt", "webvtt"].map { ["Format": $0, "Method": "External"] },
+    ]
 
     /// A device profile that claims support for every container and codec, so the
     /// server always offers the untouched file. Decoding happens locally.
@@ -396,6 +429,14 @@ final class JellyfinClient: @unchecked Sendable {
         _ = done.wait(timeout: .now() + timeout)
     }
 
+    /// Ends the server's transcoding of a play session, which would otherwise run on until it times out.
+    func stopTranscoding(playSessionId: String) async {
+        try? await send("DELETE", "/Videos/ActiveEncodings", query: [
+            URLQueryItem(name: "deviceId", value: identity.deviceId),
+            URLQueryItem(name: "playSessionId", value: playSessionId),
+        ])
+    }
+
     /// The session the server keeps for this device, used to verify the play method.
     func ownSession() async throws -> SessionInfo? {
         let sessions: [SessionInfo] = try await get("/Sessions", query: [URLQueryItem(name: "deviceId", value: identity.deviceId)])
@@ -413,6 +454,15 @@ final class JellyfinClient: @unchecked Sendable {
             URLQueryItem(name: "deviceId", value: identity.deviceId),
             URLQueryItem(name: "ApiKey", value: token),
         ])
+    }
+
+    /// A `transcodingUrl` from playback info, which is relative to the server and already carries the access token.
+    func transcodingURL(_ relative: String) -> URL? {
+        var base = serverURL.absoluteString
+        if base.hasSuffix("/") {
+            base.removeLast()
+        }
+        return URL(string: base + (relative.hasPrefix("/") ? relative : "/" + relative))
     }
 
     /// The original file as an attachment. Requires the user's "Allow media downloading" permission.

@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@; the server transcodes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, der Server transkodiert"
+          }
+        }
+      }
+    },
     "(display %lld×%lld)" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -966,6 +976,106 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld Min."
+          }
+        }
+      }
+    },
+    "Allow server transcoding" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkodierung durch den Server erlauben"
+          }
+        }
+      }
+    },
+    "Audio %lld" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio %lld"
+          }
+        }
+      }
+    },
+    "audio copied" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio kopiert"
+          }
+        }
+      }
+    },
+    "mpv is not installed, so the server transcodes files macOS can't decode itself. Install it with `brew install mpv` to play them directly." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "mpv ist nicht installiert, daher transkodiert der Server Dateien, die macOS nicht selbst dekodieren kann. Installiere es mit `brew install mpv`, um sie direkt abzuspielen."
+          }
+        }
+      }
+    },
+    "Plays files that neither AVPlayer nor mpv can decode, e.g. MKV or VP9 without mpv installed, by having the server convert them. This takes processing power on the server and can lower the quality. Downloads always play the original file." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spielt Dateien ab, die weder AVPlayer noch mpv dekodieren können, z. B. MKV oder VP9 ohne installiertes mpv, indem der Server sie umwandelt. Das kostet Rechenleistung auf dem Server und kann die Qualität verringern. Downloads werden immer als Originaldatei abgespielt."
+          }
+        }
+      }
+    },
+    "Server transcoding · AVPlayer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkodierung durch den Server · AVPlayer"
+          }
+        }
+      }
+    },
+    "The server didn't offer a transcoded stream. In Jellyfin, check that your user may play media that requires transcoding." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Server hat keinen transkodierten Stream angeboten. Prüfe in Jellyfin, ob dein Benutzer Medien abspielen darf, die eine Transkodierung erfordern."
+          }
+        }
+      }
+    },
+    "Tip: install mpv (`brew install mpv`) so JellyJelly can direct-play MKV, WebM, VP9, AV1, and more, or allow server transcoding in Settings → Playback." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tipp: Installiere mpv (`brew install mpv`), damit JellyJelly MKV, WebM, VP9, AV1 und mehr direkt abspielen kann, oder erlaube die Transkodierung durch den Server unter Einstellungen → Wiedergabe."
+          }
+        }
+      }
+    },
+    "Transcoding (server, HLS)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkodierung (Server, HLS)"
+          }
+        }
+      }
+    },
+    "video copied" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video kopiert"
           }
         }
       }

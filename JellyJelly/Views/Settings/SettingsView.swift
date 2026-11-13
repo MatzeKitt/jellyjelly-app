@@ -125,6 +125,9 @@ struct SettingsView: View {
                     SettingsRow("Hardware decoding (mpv)") {
                         Toggle("", isOn: $settings.hardwareDecoding).labelsHidden().toggleStyle(.switch)
                     }
+                    SettingsRow("Allow server transcoding", detail: "Plays files that neither AVPlayer nor mpv can decode, e.g. MKV or VP9 without mpv installed, by having the server convert them. This takes processing power on the server and can lower the quality. Downloads always play the original file.") {
+                        Toggle("", isOn: $settings.allowTranscoding).labelsHidden().toggleStyle(.switch)
+                    }
                 }
 
                 SettingsGroup(title: "Buffering", systemImage: "arrow.down.circle.fill") {
@@ -266,6 +269,9 @@ struct SettingsView: View {
     private var engineDetail: LocalizedStringKey {
         if MPVEngine.isAvailable {
             return "Automatic uses AVPlayer, which needs fewer resources, whenever macOS can decode the file itself, and mpv for everything else, like MKV and WebM files. Both play the original file; the server never transcodes."
+        }
+        if app.settings.allowTranscoding {
+            return "mpv is not installed, so the server transcodes files macOS can't decode itself. Install it with `brew install mpv` to play them directly."
         }
         return "mpv is not installed, so only MP4/MOV files with codecs macOS decodes itself can be played. Install it with `brew install mpv`."
     }

@@ -112,6 +112,7 @@ struct CastRow: View {
 /// Lists every stream of the file, for checking direct-play compatibility at a glance.
 struct MediaInfoSection: View {
     var item: BaseItem
+    @Environment(AppModel.self) private var app
     @Environment(\.palette) private var palette
 
     var body: some View {
@@ -127,9 +128,7 @@ struct MediaInfoSection: View {
                     if let bitrate = source.bitrate {
                         infoRow(String(localized: "Bitrate"), Format.bitrate(Double(bitrate)))
                     }
-                    infoRow(String(localized: "Playback"), AVPlayerEngine.canPlay(source)
-                        ? String(localized: "Direct Play · AVPlayer (native)")
-                        : (MPVEngine.isAvailable ? String(localized: "Direct Play · mpv") : String(localized: "Needs mpv for direct play")))
+                    infoRow(String(localized: "Playback"), playbackDescription(source))
                     ForEach(Array((source.mediaStreams ?? []).enumerated()), id: \.offset) { _, stream in
                         infoRow(streamType(stream.type), streamDescription(stream))
                     }
@@ -153,6 +152,17 @@ struct MediaInfoSection: View {
                 .foregroundStyle(palette.secondaryText)
                 .textSelection(.enabled)
         }
+    }
+
+    /// How the player will play the file, following the same order as the player: AVPlayer, mpv, then the server.
+    private func playbackDescription(_ source: MediaSource) -> String {
+        if AVPlayerEngine.canPlay(source) {
+            return String(localized: "Direct Play · AVPlayer (native)")
+        }
+        if MPVEngine.isAvailable {
+            return String(localized: "Direct Play · mpv")
+        }
+        return app.settings.allowTranscoding ? String(localized: "Server transcoding · AVPlayer") : String(localized: "Needs mpv for direct play")
     }
 
     private func streamDescription(_ stream: MediaStream) -> String {

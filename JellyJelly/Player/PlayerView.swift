@@ -32,7 +32,7 @@ struct PlayerView: View {
             }
 
             if case let .failed(message) = model.phase {
-                PlayerErrorView(message: message) {
+                PlayerErrorView(message: message, transcodingAllowed: app.settings.allowTranscoding) {
                     model.close()
                 }
             }
@@ -597,6 +597,7 @@ private struct BufferingIndicator: View {
 
 private struct PlayerErrorView: View {
     var message: String
+    var transcodingAllowed: Bool
     var onClose: () -> Void
     @Environment(\.palette) private var palette
 
@@ -613,7 +614,9 @@ private struct PlayerErrorView: View {
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 480)
             if !MPVEngine.isAvailable {
-                Text("Tip: install mpv (`brew install mpv`) so JellyJelly can direct-play MKV, WebM, VP9, AV1, and more.")
+                Text(transcodingAllowed
+                    ? "Tip: install mpv (`brew install mpv`) so JellyJelly can direct-play MKV, WebM, VP9, AV1, and more."
+                    : "Tip: install mpv (`brew install mpv`) so JellyJelly can direct-play MKV, WebM, VP9, AV1, and more, or allow server transcoding in Settings → Playback.")
                     .font(.system(size: 12))
                     .foregroundStyle(.white.opacity(0.6))
                     .multilineTextAlignment(.center)
