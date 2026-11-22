@@ -358,6 +358,8 @@ extension BaseItem {
         default: return mediaType == "Video"
         }
     }
+    /// Videos and songs, whose files can be downloaded one by one.
+    var isDownloadable: Bool { isPlayable || isAudio }
     var isContainer: Bool {
         isSeries || isSeason || type == ItemType.boxSet || type == ItemType.collectionFolder
             || type == ItemType.userView || type == ItemType.folder

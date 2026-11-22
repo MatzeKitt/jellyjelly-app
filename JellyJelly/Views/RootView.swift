@@ -88,9 +88,13 @@ struct RootView: View {
         if request.items.isEmpty {
             return String(localized: "Everything in it is already downloaded.")
         }
-        var message = app.isYouTube(request.container)
-            ? String(localized: "\(request.items.count) videos aren't downloaded yet, \(request.unwatched.count) of them unwatched.")
-            : String(localized: "\(request.items.count) items aren't downloaded yet, \(request.unwatched.count) of them unwatched.")
+        var message = if request.container.isMusic {
+            String(localized: "\(request.items.count) songs aren't downloaded yet.")
+        } else if app.isYouTube(request.container) {
+            String(localized: "\(request.items.count) videos aren't downloaded yet, \(request.unwatched.count) of them unwatched.")
+        } else {
+            String(localized: "\(request.items.count) items aren't downloaded yet, \(request.unwatched.count) of them unwatched.")
+        }
         if let free = app.downloads.availableBytes {
             message += " " + String(localized: "\(Format.bytes(Double(free))) of disk space is free.")
         }

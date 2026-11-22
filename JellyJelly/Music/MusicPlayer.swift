@@ -28,6 +28,7 @@ final class MusicPlayer {
     /// How the current song reaches the player, for the line under the controls.
     struct StreamInfo: Equatable {
         var isTranscoded: Bool
+        var isDownloaded = false
         var codec: String?
         var sourceCodec: String?
         var bitrate: Int?
@@ -47,6 +48,8 @@ final class MusicPlayer {
             }
             if isTranscoded {
                 parts.append(String(localized: "transcoded from \(MediaDescription.codecName(sourceCodec))"))
+            } else if isDownloaded {
+                parts.append(String(localized: "Downloaded"))
             } else {
                 parts.append(String(localized: "Direct Play"))
             }
@@ -482,6 +485,19 @@ final class MusicPlayer {
 
     /// Asks the server for a stream of the song: the original file or AAC, depending on the file and the quality setting.
     private func resolve(_ entry: Entry, forceTranscoding: Bool = false) async throws -> ResolvedTrack {
+        // A downloaded song plays from disk, without asking the server, so it also works offline.
+        if !forceTranscoding, let copy = app.downloads.offlineCopy(of: entry.item.id) {
+            let audio = copy.mediaSource?.mediaStreams?.first { $0.type == "Audio" }
+            return ResolvedTrack(
+                entryId: entry.id,
+                itemId: entry.item.id,
+                url: copy.fileURL,
+                mediaSourceId: copy.mediaSource?.id,
+                playSessionId: nil,
+                stream: StreamInfo(isTranscoded: false, isDownloaded: true, codec: audio?.codec ?? copy.mediaSource?.container,
+                                   bitrate: audio?.bitRate ?? copy.mediaSource?.bitrate, sampleRate: audio?.sampleRate, bitDepth: audio?.bitDepth)
+            )
+        }
         guard let client = app.client else {
             throw APIError.notAuthenticated
         }

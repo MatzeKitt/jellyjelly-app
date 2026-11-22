@@ -13,18 +13,22 @@ extension AppModel {
     // MARK: - Songs
 
     /// The songs of an album, artist, or playlist in their natural order; a song is just itself.
-    func songs(of item: BaseItem) async throws -> [BaseItem] {
+    ///
+    /// - Parameter withSizes: Includes the media sources, for the size of a download.
+    func songs(of item: BaseItem, withSizes: Bool = false) async throws -> [BaseItem] {
         guard let client else {
             throw APIError.notAuthenticated
         }
         if item.isAudio {
             return [item]
         }
+        let fields = JellyfinClient.standardFields + (withSizes ? ["MediaSources"] : [])
         if item.isPlaylist {
-            return try await client.playlistItems(item.id).filter(\.isAudio)
+            return try await client.playlistItems(item.id, fields: fields).filter(\.isAudio)
         }
         var query = ItemQuery()
         query.includeItemTypes = [ItemType.audio]
+        query.fields = fields
         query.enableTotalRecordCount = false
         if item.isArtist {
             query.artistIds = [item.id]

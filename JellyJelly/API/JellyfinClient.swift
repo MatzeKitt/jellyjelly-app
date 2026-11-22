@@ -311,10 +311,10 @@ final class JellyfinClient: @unchecked Sendable {
     }
 
     /// The songs of a playlist in their order, each with its `playlistItemId`.
-    func playlistItems(_ playlistId: String) async throws -> [BaseItem] {
+    func playlistItems(_ playlistId: String, fields: [String] = standardFields) async throws -> [BaseItem] {
         let response: ItemsResponse = try await get("/Playlists/\(playlistId)/Items", query: [
             userQuery,
-            URLQueryItem(name: "fields", value: Self.standardFields.joined(separator: ",")),
+            URLQueryItem(name: "fields", value: fields.joined(separator: ",")),
             URLQueryItem(name: "enableUserData", value: "true"),
         ])
         return response.items

@@ -264,6 +264,9 @@ struct TrackRow: View {
             .opacity(item.isFavorite || hovering ? 1 : 0)
             .help(item.isFavorite ? "Remove from Favorites" : "Add to Favorites")
 
+            SongDownloadMark(itemId: item.id)
+                .frame(width: 14)
+
             Text(item.duration.map(Format.time) ?? "")
                 .font(.system(size: 12, weight: .medium).monospacedDigit())
                 .foregroundStyle(palette.tertiaryText)
@@ -304,6 +307,102 @@ struct TrackRow: View {
                 extraMenu
             }
         }
+    }
+}
+
+/// A small mark beside songs that are downloaded or downloading.
+private struct SongDownloadMark: View {
+    var itemId: String
+
+    @Environment(AppModel.self) private var app
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        switch app.downloads.status(of: itemId) {
+        case .completed:
+            Image(systemName: "arrow.down.circle.fill")
+                .font(.system(size: 12))
+                .foregroundStyle(palette.tertiaryText)
+                .help("Downloaded")
+        case .queued, .downloading:
+            DownloadProgressRing(itemId: itemId, lineWidth: 2)
+                .frame(width: 11, height: 11)
+                .help("Downloading")
+        case .failed:
+            Image(systemName: "exclamationmark.circle.fill")
+                .font(.system(size: 12))
+                .foregroundStyle(.orange)
+                .help("Download failed")
+        case nil:
+            EmptyView()
+        }
+    }
+}
+
+/// The download button of an album or playlist page, for all of its songs: download what's missing,
+/// cancel while downloading, or remove once everything is downloaded.
+struct MusicDownloadButton: View {
+    var container: BaseItem
+    var songs: [BaseItem]
+
+    @Environment(AppModel.self) private var app
+    @State private var confirmingRemoval = false
+
+    var body: some View {
+        let statuses = songs.map { app.downloads.status(of: $0.id) }
+        let completed = statuses.filter { $0 == .completed }.count
+        let pending = statuses.contains { $0 == .queued || $0 == .downloading }
+        let isComplete = !songs.isEmpty && completed == songs.count
+        Button {
+            if isComplete {
+                confirmingRemoval = true
+            } else if pending {
+                for song in songs where [.queued, .downloading].contains(app.downloads.status(of: song.id)) {
+                    app.downloads.remove(song.id)
+                }
+            } else {
+                download(statuses)
+            }
+        } label: {
+            if pending {
+                ProgressRing(progress: Double(completed) / Double(max(songs.count, 1)))
+                    .frame(width: 18, height: 18)
+            } else {
+                Image(systemName: isComplete ? "arrow.down.circle.fill" : "arrow.down.circle")
+            }
+        }
+        .buttonStyle(CircleIconButtonStyle(size: 42, active: isComplete))
+        .disabled(songs.isEmpty)
+        .help(help(completed: completed, pending: pending, isComplete: isComplete))
+        .confirmationDialog("Remove the downloads of “\(container.displayName)”?", isPresented: $confirmingRemoval) {
+            Button("Remove Downloads", role: .destructive) {
+                songs.forEach { app.downloads.remove($0.id) }
+            }
+        } message: {
+            Text("The songs will no longer be available offline.")
+        }
+    }
+
+    /// Asks before downloading songs that aren't downloaded yet; failed ones are simply retried.
+    private func download(_ statuses: [DownloadStatus?]) {
+        for song in songs {
+            if case .failed = app.downloads.status(of: song.id) {
+                app.downloads.retry(song.id)
+            }
+        }
+        if statuses.contains(nil) {
+            app.download(container)
+        }
+    }
+
+    private func help(completed: Int, pending: Bool, isComplete: Bool) -> String {
+        if isComplete {
+            return String(localized: "Downloaded (click to remove)")
+        }
+        if pending {
+            return String(localized: "Downloaded \(completed) of \(songs.count) songs (click to cancel)")
+        }
+        return String(localized: "Download for Offline Listening")
     }
 }
 
@@ -403,6 +502,7 @@ struct MusicMenuItems: View {
         } label: {
             Label(item.isFavorite ? "Remove from Favorites" : "Add to Favorites", systemImage: item.isFavorite ? "heart.slash" : "heart")
         }
+        DownloadMenuItems(item: item, app: app)
     }
 }
 

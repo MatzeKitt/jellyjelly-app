@@ -42,6 +42,8 @@ struct AlbumView: View {
                     .buttonStyle(CircleIconButtonStyle(size: 42, active: album.isFavorite))
                     .help(album.isFavorite ? "Remove from Favorites" : "Add to Favorites")
 
+                    MusicDownloadButton(container: album, songs: tracks)
+
                     Menu {
                         MusicMenuItems(item: album, app: app)
                     } label: {
