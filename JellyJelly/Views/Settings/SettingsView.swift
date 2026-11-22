@@ -130,6 +130,16 @@ struct SettingsView: View {
                     }
                 }
 
+                SettingsGroup(title: "Music", systemImage: "music.note") {
+                    SettingsRow("Streaming quality", detail: "Original plays the file as it is, unless the Mac can't decode it, e.g. Ogg or Opus, which the server then converts to AAC at 320 kbps. A lower quality has the server convert every song above that bitrate.") {
+                        Picker("", selection: $settings.musicQuality) {
+                            ForEach(MusicQuality.allCases) { Text($0.title).tag($0) }
+                        }
+                        .labelsHidden()
+                        .fixedSize()
+                    }
+                }
+
                 SettingsGroup(title: "Buffering", systemImage: "arrow.down.circle.fill") {
                     SliderRow(title: "Buffer ahead", value: $settings.bufferAheadSeconds, range: 30...900, step: 30,
                               format: { seconds in
@@ -207,6 +217,17 @@ struct SettingsView: View {
                         ShortcutRow(keys: "N", action: "Next video")
                         ShortcutRow(keys: "Esc", action: "Leave full screen or picture in picture, then close player")
                         ShortcutRow(keys: "⌘[  or mouse back button", action: "Go back")
+                    }
+                    Text("Music")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(palette.tertiaryText)
+                        .padding(.top, 8)
+                    VStack(alignment: .leading, spacing: 6) {
+                        ShortcutRow(keys: "Space", action: "Play / pause")
+                        ShortcutRow(keys: "⌘← / ⌘→", action: "Previous / next song")
+                        ShortcutRow(keys: "⌘↑ / ⌘↓", action: "Volume")
+                        ShortcutRow(keys: "⌘P", action: "Show or hide Now Playing")
+                        ShortcutRow(keys: "⇧⌘L", action: "Lyrics")
                     }
                 }
 

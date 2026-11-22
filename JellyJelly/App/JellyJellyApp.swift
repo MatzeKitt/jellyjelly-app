@@ -52,10 +52,23 @@ struct JellyJellyApp: App {
                     .keyboardShortcut("3")
                 Button("Downloads") { app.section = .downloads }
                     .keyboardShortcut("4")
+                if app.hasMusic {
+                    Divider()
+                    ForEach(Array(MusicSection.allCases.enumerated()), id: \.element) { offset, section in
+                        Button(section.title) { app.section = .music(section) }
+                            .keyboardShortcut(KeyEquivalent(Character(String(offset + 5))))
+                    }
+                }
             }
             CommandMenu("Playback") {
-                Button("Play/Pause") { app.player?.togglePause() }
-                    .disabled(app.player == nil)
+                Button("Play/Pause") {
+                    if let player = app.player {
+                        player.togglePause()
+                    } else {
+                        app.music.togglePlayPause()
+                    }
+                }
+                .disabled(app.player == nil && app.music.current == nil)
                 Button("Show Stats") { app.player?.toggleStats() }
                     .keyboardShortcut("i", modifiers: [.command, .option])
                     .disabled(app.player == nil)
@@ -70,6 +83,32 @@ struct JellyJellyApp: App {
                 Button("Stop") { app.player?.close() }
                     .keyboardShortcut(".")
                     .disabled(app.player == nil)
+                Divider()
+                // ⌘← and ⌘→ come from the music player's key monitor, so they still move the cursor in text fields.
+                Button("Previous Song (⌘←)") { app.music.previous() }
+                    .disabled(app.player != nil || app.music.current == nil)
+                Button("Next Song (⌘→)") { app.music.next() }
+                    .disabled(app.player != nil || !app.music.hasNext)
+                Button(app.music.isShuffled ? "Turn Off Shuffle" : "Shuffle") { app.music.toggleShuffle() }
+                    .disabled(app.music.current == nil)
+                Menu("Repeat") {
+                    Toggle("Off", isOn: repeatBinding(.off))
+                    Toggle("All", isOn: repeatBinding(.all))
+                    Toggle("One", isOn: repeatBinding(.one))
+                }
+                .disabled(app.music.current == nil)
+                Divider()
+                Button(app.showsNowPlaying ? "Hide Now Playing" : "Show Now Playing") { app.showsNowPlaying.toggle() }
+                    .keyboardShortcut("p")
+                    .disabled(app.music.current == nil)
+                Button("Lyrics") {
+                    app.nowPlayingPanel = .lyrics
+                    app.showsNowPlaying = true
+                }
+                .keyboardShortcut("l", modifiers: [.command, .shift])
+                .disabled(app.music.current == nil)
+                Button("Clear Queue and Stop Music") { app.music.stop() }
+                    .disabled(app.music.current == nil)
             }
         }
 
@@ -80,6 +119,15 @@ struct JellyJellyApp: App {
                 .preferredColorScheme(.dark)
                 .frame(width: 640, height: 720)
         }
+    }
+}
+
+extension JellyJellyApp {
+    private func repeatBinding(_ mode: MusicPlayer.RepeatMode) -> Binding<Bool> {
+        Binding(
+            get: { app.music.repeatMode == mode },
+            set: { if $0 { app.music.setRepeatMode(mode) } }
+        )
     }
 }
 
@@ -113,7 +161,59 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // async work doesn't run reliably while AppKit waits on `.terminateLater`.
         MainActor.assumeIsolated {
             AppModel.shared.player?.stopForTermination()
+            AppModel.shared.music.stopForTermination()
         }
         return .terminateNow
+    }
+
+    /// Controls for the music player in the Dock icon's menu.
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        // Built inside but returned outside the closure, since NSMenu isn't Sendable.
+        var menu: NSMenu?
+        MainActor.assumeIsolated {
+            let music = AppModel.shared.music
+            guard let item = music.current, AppModel.shared.player == nil else {
+                return
+            }
+            let dockMenu = NSMenu()
+            let title = NSMenuItem(title: [item.displayName, item.artistLine].compactMap { $0 }.joined(separator: " – "), action: nil, keyEquivalent: "")
+            title.isEnabled = false
+            dockMenu.addItem(title)
+            dockMenu.addItem(.separator())
+            dockMenu.addItem(dockItem(music.isPlaying ? String(localized: "Pause") : String(localized: "Play"), #selector(dockPlayPause)))
+            dockMenu.addItem(dockItem(String(localized: "Next"), #selector(dockNext), enabled: music.hasNext))
+            dockMenu.addItem(dockItem(String(localized: "Previous"), #selector(dockPrevious)))
+            dockMenu.addItem(.separator())
+            dockMenu.addItem(dockItem(item.isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites"), #selector(dockFavorite)))
+            menu = dockMenu
+        }
+        return menu
+    }
+
+    private func dockItem(_ title: String, _ action: Selector, enabled: Bool = true) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: enabled ? action : nil, keyEquivalent: "")
+        item.target = self
+        item.isEnabled = enabled
+        return item
+    }
+
+    @objc private func dockPlayPause() {
+        MainActor.assumeIsolated { AppModel.shared.music.togglePlayPause() }
+    }
+
+    @objc private func dockNext() {
+        MainActor.assumeIsolated { AppModel.shared.music.next() }
+    }
+
+    @objc private func dockPrevious() {
+        MainActor.assumeIsolated { AppModel.shared.music.previous() }
+    }
+
+    @objc private func dockFavorite() {
+        MainActor.assumeIsolated {
+            if let item = AppModel.shared.music.current {
+                AppModel.shared.toggleFavorite(item)
+            }
+        }
     }
 }

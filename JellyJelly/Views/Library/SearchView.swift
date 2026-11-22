@@ -22,7 +22,7 @@ struct SearchView: View {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundStyle(palette.accent)
-                        TextField("Videos, channels, movies, shows…", text: $query)
+                        TextField(app.hasMusic ? "Videos, channels, movies, shows, music…" : "Videos, channels, movies, shows…", text: $query)
                             .textFieldStyle(.plain)
                             .font(.system(size: 20, weight: .medium))
                             .focused($focused)
@@ -83,6 +83,8 @@ struct SearchView: View {
                     }
                 }
 
+                MusicResults(items: results)
+
                 if !query.isEmpty, !searching, results.isEmpty {
                     EmptyStateView(systemImage: "magnifyingglass", title: String(localized: "No results"), message: String(localized: "Nothing matches “\(query)”."))
                         .frame(height: 300)
@@ -117,6 +119,9 @@ struct SearchView: View {
         var query = ItemQuery()
         query.searchTerm = term
         query.includeItemTypes = [ItemType.movie, ItemType.series, ItemType.episode, ItemType.video]
+        if app.hasMusic {
+            query.includeItemTypes += [ItemType.musicArtist, ItemType.musicAlbum, ItemType.audio, ItemType.playlist]
+        }
         query.sortBy = ["SortName"]
         query.limit = 120
         query.enableTotalRecordCount = false
@@ -170,6 +175,7 @@ struct FavoritesView: View {
                         ForEach(episodes) { item in LandscapeCard(item: item) { app.open(item) } }
                     }
                 }
+                MusicResults(items: items)
                 if loaded && items.isEmpty {
                     EmptyStateView(systemImage: "heart", title: String(localized: "No favorites yet"),
                                    message: String(localized: "Right-click any video, channel, movie, or show and choose “Add to Favorites”."))
@@ -187,6 +193,9 @@ struct FavoritesView: View {
             var query = ItemQuery()
             query.isFavorite = true
             query.includeItemTypes = [ItemType.movie, ItemType.series, ItemType.episode, ItemType.video]
+            if app.hasMusic {
+                query.includeItemTypes += [ItemType.musicArtist, ItemType.musicAlbum, ItemType.audio, ItemType.playlist]
+            }
             query.sortBy = ["SortName"]
             query.limit = 500
             items = (try? await client.items(query).items) ?? []
@@ -196,6 +205,53 @@ struct FavoritesView: View {
             items.apply(change)
             if let change, change.userData?.isFavorite == false {
                 items.removeAll { $0.id == change.itemId }
+            }
+        }
+    }
+}
+
+/// Artists, albums, songs, and playlists among search results or favorites.
+private struct MusicResults: View {
+    var items: [BaseItem]
+    @Environment(AppModel.self) private var app
+
+    var body: some View {
+        let artists = items.filter(\.isArtist)
+        if !artists.isEmpty {
+            Shelf(title: String(localized: "Artists")) {
+                ForEach(artists) { artist in
+                    ArtistCard(artist: artist, size: 120)
+                }
+            }
+        }
+        let albums = items.filter(\.isAlbum)
+        if !albums.isEmpty {
+            Shelf(title: String(localized: "Albums")) {
+                ForEach(albums) { album in
+                    MusicCard(item: album)
+                }
+            }
+        }
+        let songs = Array(items.filter(\.isAudio).prefix(30))
+        if !songs.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionHeader(title: String(localized: "Songs")).padding(.horizontal, Metrics.pagePadding)
+                VStack(spacing: 2) {
+                    ForEach(Array(songs.enumerated()), id: \.element.id) { index, song in
+                        TrackRow(item: song, showsArtwork: true, showsAlbum: true) {
+                            app.music.play(songs, startingAt: index)
+                        }
+                    }
+                }
+                .padding(.horizontal, Metrics.pagePadding - 12)
+            }
+        }
+        let playlists = items.filter { $0.isPlaylist && $0.isMusic }
+        if !playlists.isEmpty {
+            Shelf(title: String(localized: "Playlists")) {
+                ForEach(playlists) { playlist in
+                    MusicCard(item: playlist)
+                }
             }
         }
     }

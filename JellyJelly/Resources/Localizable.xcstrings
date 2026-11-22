@@ -1,12 +1,13 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%@; the server transcodes" : {
+    "“%@” can't be played. %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@, der Server transkodiert"
+            "value" : "„%1$@“ kann nicht abgespielt werden. %2$@"
           }
         }
       }
@@ -246,6 +247,17 @@
     "%@ videos" : {
 
     },
+    "%@; the server transcodes" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, der Server transkodiert"
+          }
+        }
+      }
+    },
     "%lld · last: %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -253,6 +265,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$lld · zuletzt: %2$@"
+          }
+        }
+      }
+    },
+    "%lld albums" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Album"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Alben"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld artists" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Künstler"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Künstler"
+                }
+              }
+            }
           }
         }
       }
@@ -608,6 +666,29 @@
         }
       }
     },
+    "%lld playlists" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Playlist"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Playlists"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld s" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -653,6 +734,29 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld Seasons"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld songs" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Titel"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Titel"
                 }
               }
             }
@@ -980,106 +1084,6 @@
         }
       }
     },
-    "Allow server transcoding" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transkodierung durch den Server erlauben"
-          }
-        }
-      }
-    },
-    "Audio %lld" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Audio %lld"
-          }
-        }
-      }
-    },
-    "audio copied" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Audio kopiert"
-          }
-        }
-      }
-    },
-    "mpv is not installed, so the server transcodes files macOS can't decode itself. Install it with `brew install mpv` to play them directly." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "mpv ist nicht installiert, daher transkodiert der Server Dateien, die macOS nicht selbst dekodieren kann. Installiere es mit `brew install mpv`, um sie direkt abzuspielen."
-          }
-        }
-      }
-    },
-    "Plays files that neither AVPlayer nor mpv can decode, e.g. MKV or VP9 without mpv installed, by having the server convert them. This takes processing power on the server and can lower the quality. Downloads always play the original file." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Spielt Dateien ab, die weder AVPlayer noch mpv dekodieren können, z. B. MKV oder VP9 ohne installiertes mpv, indem der Server sie umwandelt. Das kostet Rechenleistung auf dem Server und kann die Qualität verringern. Downloads werden immer als Originaldatei abgespielt."
-          }
-        }
-      }
-    },
-    "Server transcoding · AVPlayer" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transkodierung durch den Server · AVPlayer"
-          }
-        }
-      }
-    },
-    "The server didn't offer a transcoded stream. In Jellyfin, check that your user may play media that requires transcoding." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Der Server hat keinen transkodierten Stream angeboten. Prüfe in Jellyfin, ob dein Benutzer Medien abspielen darf, die eine Transkodierung erfordern."
-          }
-        }
-      }
-    },
-    "Tip: install mpv (`brew install mpv`) so JellyJelly can direct-play MKV, WebM, VP9, AV1, and more, or allow server transcoding in Settings → Playback." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tipp: Installiere mpv (`brew install mpv`), damit JellyJelly MKV, WebM, VP9, AV1 und mehr direkt abspielen kann, oder erlaube die Transkodierung durch den Server unter Einstellungen → Wiedergabe."
-          }
-        }
-      }
-    },
-    "Transcoding (server, HLS)" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transkodierung (Server, HLS)"
-          }
-        }
-      }
-    },
-    "video copied" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Video kopiert"
-          }
-        }
-      }
-    },
     "← / →  (⇧ for 1 min)" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1091,6 +1095,17 @@
         }
       }
     },
+    "⇧⌘L" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⇧⌘L"
+          }
+        }
+      }
+    },
     "⌘[  or mouse back button" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1098,6 +1113,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "⌘[  oder Zurück-Taste der Maus"
+          }
+        }
+      }
+    },
+    "⌘← / ⌘→" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘← / ⌘→"
+          }
+        }
+      }
+    },
+    "⌘↑ / ⌘↓" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘↑ / ⌘↓"
+          }
+        }
+      }
+    },
+    "⌘P" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌘P"
+          }
+        }
+      }
+    },
+    "1 album" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 Album"
+          }
+        }
+      }
+    },
+    "1 song" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 Titel"
           }
         }
       }
@@ -1124,6 +1194,50 @@
         }
       }
     },
+    "AAC 128 kbps" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AAC 128 kbit/s"
+          }
+        }
+      }
+    },
+    "AAC 192 kbps" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AAC 192 kbit/s"
+          }
+        }
+      }
+    },
+    "AAC 256 kbps" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AAC 256 kbit/s"
+          }
+        }
+      }
+    },
+    "AAC 320 kbps" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AAC 320 kbit/s"
+          }
+        }
+      }
+    },
     "Account" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1142,6 +1256,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Schauspieler"
+          }
+        }
+      }
+    },
+    "Add music to a Jellyfin library of the type “Music” and it shows up here." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Füge Musik zu einer Jellyfin-Bibliothek vom Typ „Musik“ hinzu, dann erscheint sie hier."
           }
         }
       }
@@ -1168,6 +1293,28 @@
         }
       }
     },
+    "Add to Playlist" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zur Playlist hinzufügen"
+          }
+        }
+      }
+    },
+    "Add to Queue" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zur Warteschlange hinzufügen"
+          }
+        }
+      }
+    },
     "Address" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1175,6 +1322,73 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Adresse"
+          }
+        }
+      }
+    },
+    "Adds “%@”." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fügt „%@“ hinzu."
+          }
+        }
+      }
+    },
+    "Adds %lld items." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Fügt %lld Element hinzu."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Fügt %lld Elemente hinzu."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Album" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Album"
+          }
+        }
+      }
+    },
+    "Albums" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alben"
+          }
+        }
+      }
+    },
+    "Albums you haven't played yet" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alben, die du noch nicht gehört hast"
           }
         }
       }
@@ -1196,6 +1410,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Alles gesehen"
+          }
+        }
+      }
+    },
+    "Allow server transcoding" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkodierung durch den Server erlauben"
           }
         }
       }
@@ -1255,6 +1480,39 @@
         }
       }
     },
+    "Appears On" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enthalten auf"
+          }
+        }
+      }
+    },
+    "Artist" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Künstler"
+          }
+        }
+      }
+    },
+    "Artists" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Künstler"
+          }
+        }
+      }
+    },
     "Ascending" : {
       "localizations" : {
         "de" : {
@@ -1294,6 +1552,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Audio & Untertitel"
+          }
+        }
+      }
+    },
+    "Audio %lld" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio %lld"
+          }
+        }
+      }
+    },
+    "audio copied" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio kopiert"
           }
         }
       }
@@ -1639,6 +1919,17 @@
         }
       }
     },
+    "Clear and Stop" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leeren und stoppen"
+          }
+        }
+      }
+    },
     "Clear Genres" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1650,6 +1941,28 @@
         }
       }
     },
+    "Clear Queue and Stop Music" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warteschlange leeren und Musik stoppen"
+          }
+        }
+      }
+    },
+    "Clear Up Next" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Als Nächstes“ leeren"
+          }
+        }
+      }
+    },
     "Close" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1657,6 +1970,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Schließen"
+          }
+        }
+      }
+    },
+    "Close (Esc)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließen (Esc)"
           }
         }
       }
@@ -1825,6 +2149,28 @@
         }
       }
     },
+    "Create" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erstellen"
+          }
+        }
+      }
+    },
+    "Create one with “New Playlist”, or right-click any song or album and choose “Add to Playlist”." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erstelle eine mit „Neue Playlist“ oder klicke mit der rechten Maustaste auf einen Titel oder ein Album und wähle „Zur Playlist hinzufügen“."
+          }
+        }
+      }
+    },
     "Critics' Score" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1913,6 +2259,39 @@
         }
       }
     },
+    "Delete “%@”?" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@“ löschen?"
+          }
+        }
+      }
+    },
+    "Delete Playlist" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlist löschen"
+          }
+        }
+      }
+    },
+    "Delete Playlist…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlist löschen …"
+          }
+        }
+      }
+    },
     "Demuxer" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1941,6 +2320,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Details"
+          }
+        }
+      }
+    },
+    "Direct Play" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direktwiedergabe"
           }
         }
       }
@@ -1995,6 +2385,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Regie"
+          }
+        }
+      }
+    },
+    "Disc %lld" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CD %lld"
+          }
+        }
+      }
+    },
+    "Discover" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entdecken"
           }
         }
       }
@@ -2253,6 +2665,17 @@
         }
       }
     },
+    "Edit Playlist" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlist bearbeiten"
+          }
+        }
+      }
+    },
     "Embedded Image" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2427,6 +2850,17 @@
         }
       }
     },
+    "Favorite Songs" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lieblingstitel"
+          }
+        }
+      }
+    },
     "Favorites" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2581,6 +3015,17 @@
         }
       }
     },
+    "Go to Album" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Album"
+          }
+        }
+      }
+    },
     "Go to Series" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2621,6 +3066,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hardware-Dekodierung (mpv)"
+          }
+        }
+      }
+    },
+    "Hide History" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verlauf ausblenden"
+          }
+        }
+      }
+    },
+    "Hide Now Playing" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Läuft gerade“ ausblenden"
+          }
+        }
+      }
+    },
+    "Hide Now Playing (⌘P)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Läuft gerade“ ausblenden (⌘P)"
           }
         }
       }
@@ -2691,6 +3169,17 @@
         }
       }
     },
+    "Instant Mix" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instant-Mix"
+          }
+        }
+      }
+    },
     "Intros, credits, and sponsor segments" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2719,6 +3208,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Es ist dann nicht mehr offline verfügbar."
+          }
+        }
+      }
+    },
+    "Jellyfin found no similar music for “%@”." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin hat keine ähnliche Musik zu „%@“ gefunden."
+          }
+        }
+      }
+    },
+    "Jellyfin has no lyrics for this song. It reads them from LRC or text files next to the song, or from a lyrics plugin." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jellyfin hat keinen Liedtext zu diesem Titel. Es liest ihn aus LRC- oder Textdateien neben dem Titel oder aus einem Liedtext-Plugin."
           }
         }
       }
@@ -2804,6 +3315,7 @@
       }
     },
     "LIBRARIES" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2830,6 +3342,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hält voraussichtlich mit"
+          }
+        }
+      }
+    },
+    "Listen Now" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jetzt hören"
           }
         }
       }
@@ -2863,6 +3386,27 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Speicherort"
+          }
+        }
+      }
+    },
+    "Lyrics" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liedtext"
+          }
+        }
+      }
+    },
+    "Lyrics (⇧⌘L)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liedtext (⇧⌘L)"
           }
         }
       }
@@ -3010,6 +3554,17 @@
         }
       }
     },
+    "More by %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mehr von %@"
+          }
+        }
+      }
+    },
     "More Episodes" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3050,6 +3605,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ähnliche Titel"
+          }
+        }
+      }
+    },
+    "Most Played" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meistgespielt"
           }
         }
       }
@@ -3109,6 +3675,17 @@
         }
       }
     },
+    "mpv is not installed, so the server transcodes files macOS can't decode itself. Install it with `brew install mpv` to play them directly." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "mpv ist nicht installiert, daher transkodiert der Server Dateien, die macOS nicht selbst dekodieren kann. Installiere es mit `brew install mpv`, um sie direkt abzuspielen."
+          }
+        }
+      }
+    },
     "mpv is not installed; trying AVPlayer" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3120,6 +3697,27 @@
         }
       }
     },
+    "Music" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Musik"
+          }
+        }
+      }
+    },
+    "MUSIC" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MUSIK"
+          }
+        }
+      }
+    },
     "Mute (M)" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3127,6 +3725,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Stummschalten (M)"
+          }
+        }
+      }
+    },
+    "Name" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
           }
         }
       }
@@ -3185,12 +3794,56 @@
         }
       }
     },
+    "New Playlist" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Playlist"
+          }
+        }
+      }
+    },
+    "New Playlist…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Playlist …"
+          }
+        }
+      }
+    },
     "Newest First" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Neueste zuerst"
+          }
+        }
+      }
+    },
+    "Next" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nächster"
+          }
+        }
+      }
+    },
+    "Next (⌘→)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weiter (⌘→)"
           }
         }
       }
@@ -3202,6 +3855,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nächstes (N)"
+          }
+        }
+      }
+    },
+    "Next Song (⌘→)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nächster Titel (⌘→)"
           }
         }
       }
@@ -3283,6 +3947,39 @@
         }
       }
     },
+    "No lyrics" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Liedtext"
+          }
+        }
+      }
+    },
+    "No music yet" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine Musik"
+          }
+        }
+      }
+    },
+    "No playlists yet" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine Playlists"
+          }
+        }
+      }
+    },
     "No results" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3360,6 +4057,17 @@
         }
       }
     },
+    "Nothing else is queued. Right-click a song or album and choose “Play Next” or “Add to Queue”." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sonst ist nichts in der Warteschlange. Klicke mit der rechten Maustaste auf einen Titel oder ein Album und wähle „Als Nächstes spielen“ oder „Zur Warteschlange hinzufügen“."
+          }
+        }
+      }
+    },
     "Nothing here yet" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3404,6 +4112,17 @@
         }
       }
     },
+    "Now Playing" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Läuft gerade"
+          }
+        }
+      }
+    },
     "Off" : {
       "localizations" : {
         "de" : {
@@ -3431,6 +4150,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Älteste zuerst"
+          }
+        }
+      }
+    },
+    "One" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einen Titel"
           }
         }
       }
@@ -3468,6 +4198,28 @@
         }
       }
     },
+    "Original" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
+          }
+        }
+      }
+    },
+    "Original plays the file as it is, unless the Mac can't decode it, e.g. Ogg or Opus, which the server then converts to AAC at 320 kbps. A lower quality has the server convert every song above that bitrate." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Original“ spielt die Datei unverändert ab, außer der Mac kann sie nicht dekodieren, etwa Ogg oder Opus. Die wandelt der Server dann in AAC mit 320 kbit/s um. Bei einer niedrigeren Qualität wandelt der Server jeden Titel oberhalb dieser Bitrate um."
+          }
+        }
+      }
+    },
     "Output" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3497,6 +4249,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Passwort"
+          }
+        }
+      }
+    },
+    "Pause" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausieren"
           }
         }
       }
@@ -3601,6 +4364,17 @@
         }
       }
     },
+    "Play Count" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiedergaben"
+          }
+        }
+      }
+    },
     "Play from Beginning" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3619,6 +4393,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wiedergabemethode"
+          }
+        }
+      }
+    },
+    "Play Next" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als Nächstes spielen"
           }
         }
       }
@@ -3753,6 +4538,39 @@
         }
       }
     },
+    "Playlist" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlist"
+          }
+        }
+      }
+    },
+    "Playlists" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlists"
+          }
+        }
+      }
+    },
+    "Plays files that neither AVPlayer nor mpv can decode, e.g. MKV or VP9 without mpv installed, by having the server convert them. This takes processing power on the server and can lower the quality. Downloads always play the original file." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spielt Dateien ab, die weder AVPlayer noch mpv dekodieren können, z. B. MKV oder VP9 ohne installiertes mpv, indem der Server sie umwandelt. Das kostet Rechenleistung auf dem Server und kann die Qualität verringern. Downloads werden immer als Originaldatei abgespielt."
+          }
+        }
+      }
+    },
     "Position" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3808,6 +4626,50 @@
         }
       }
     },
+    "Previous" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorheriger"
+          }
+        }
+      }
+    },
+    "Previous (⌘←)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurück (⌘←)"
+          }
+        }
+      }
+    },
+    "Previous / next song" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorheriger / nächster Titel"
+          }
+        }
+      }
+    },
+    "Previous Song (⌘←)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorheriger Titel (⌘←)"
+          }
+        }
+      }
+    },
     "Producer" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3815,6 +4677,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Produktion"
+          }
+        }
+      }
+    },
+    "Queue" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warteschlange"
           }
         }
       }
@@ -3848,6 +4720,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kürzlich hinzugefügt"
+          }
+        }
+      }
+    },
+    "Recently Played" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt gespielt"
           }
         }
       }
@@ -3903,6 +4786,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Erscheinungsdatum"
+          }
+        }
+      }
+    },
+    "Released %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erschienen am %@"
           }
         }
       }
@@ -3995,6 +4889,28 @@
         }
       }
     },
+    "Remove from Playlist" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus Playlist entfernen"
+          }
+        }
+      }
+    },
+    "Remove from Queue" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus Warteschlange entfernen"
+          }
+        }
+      }
+    },
     "Remove the download of “%@”?" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4002,6 +4918,61 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Download von „%@“ entfernen?"
+          }
+        }
+      }
+    },
+    "Rename…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umbenennen …"
+          }
+        }
+      }
+    },
+    "Repeat" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederholen"
+          }
+        }
+      }
+    },
+    "Repeat All" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle wiederholen"
+          }
+        }
+      }
+    },
+    "Repeat Off" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederholen aus"
+          }
+        }
+      }
+    },
+    "Repeat One" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titel wiederholen"
           }
         }
       }
@@ -4095,6 +5066,17 @@
         }
       }
     },
+    "Right-click a song, album, or artist and choose “Add to Playlist”." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klicke mit der rechten Maustaste auf einen Titel, ein Album oder einen Künstler und wähle „Zur Playlist hinzufügen“."
+          }
+        }
+      }
+    },
     "Right-click any video, channel, movie, or show and choose “Add to Favorites”." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4147,6 +5129,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "S%1$lld:F%2$lld"
+          }
+        }
+      }
+    },
+    "Save" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sichern"
           }
         }
       }
@@ -4228,6 +5221,17 @@
         }
       }
     },
+    "Server transcoding · AVPlayer" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkodierung durch den Server · AVPlayer"
+          }
+        }
+      }
+    },
     "Settings" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4261,6 +5265,17 @@
         }
       }
     },
+    "Show History (%lld)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verlauf anzeigen (%lld)"
+          }
+        }
+      }
+    },
     "Show in Finder" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4272,6 +5287,28 @@
         }
       }
     },
+    "Show Now Playing" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Läuft gerade“ anzeigen"
+          }
+        }
+      }
+    },
+    "Show Now Playing (⌘P)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Läuft gerade“ anzeigen (⌘P)"
+          }
+        }
+      }
+    },
     "Show oldest first" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4279,6 +5316,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Älteste zuerst anzeigen"
+          }
+        }
+      }
+    },
+    "Show or hide Now Playing" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Läuft gerade“ ein- oder ausblenden"
           }
         }
       }
@@ -4345,6 +5393,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zufällig"
+          }
+        }
+      }
+    },
+    "Shuffle All" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle zufällig"
           }
         }
       }
@@ -4556,6 +5615,17 @@
         }
       }
     },
+    "Songs" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titel"
+          }
+        }
+      }
+    },
     "Sort By" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4574,6 +5644,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quelle"
+          }
+        }
+      }
+    },
+    "Space" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leertaste"
           }
         }
       }
@@ -4618,6 +5699,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aussetzer"
+          }
+        }
+      }
+    },
+    "Start Instant Mix" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instant-Mix starten"
           }
         }
       }
@@ -4684,6 +5776,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Stream"
+          }
+        }
+      }
+    },
+    "Streaming quality" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaming-Qualität"
           }
         }
       }
@@ -4787,6 +5890,27 @@
         }
       }
     },
+    "The playlist is deleted on the server for every device. Its songs stay in your library." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Playlist wird auf dem Server für alle Geräte gelöscht. Ihre Titel bleiben in deiner Bibliothek."
+          }
+        }
+      }
+    },
+    "The queue starts over after this song." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach diesem Titel beginnt die Warteschlange von vorn."
+          }
+        }
+      }
+    },
     "The server address is not valid." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4820,6 +5944,28 @@
         }
       }
     },
+    "The server didn't offer a stream for this song." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Server hat keinen Stream für diesen Titel angeboten."
+          }
+        }
+      }
+    },
+    "The server didn't offer a transcoded stream. In Jellyfin, check that your user may play media that requires transcoding." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Server hat keinen transkodierten Stream angeboten. Prüfe in Jellyfin, ob dein Benutzer Medien abspielen darf, die eine Transkodierung erfordern."
+          }
+        }
+      }
+    },
     "The server rejected the credentials." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4831,6 +5977,17 @@
         }
       }
     },
+    "The stream could not be played." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Stream konnte nicht abgespielt werden."
+          }
+        }
+      }
+    },
     "There are no unwatched videos in your channels." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4838,6 +5995,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "In deinen Kanälen gibt es keine ungesehenen Videos."
+          }
+        }
+      }
+    },
+    "This Artist" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "diesem Künstler"
           }
         }
       }
@@ -4874,7 +6042,30 @@
         }
       }
     },
+    "This playlist is empty" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Playlist ist leer"
+          }
+        }
+      }
+    },
+    "Tip: install mpv (`brew install mpv`) so JellyJelly can direct-play MKV, WebM, VP9, AV1, and more, or allow server transcoding in Settings → Playback." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tipp: Installiere mpv (`brew install mpv`), damit JellyJelly MKV, WebM, VP9, AV1 und mehr direkt abspielen kann, oder erlaube die Transkodierung durch den Server unter Einstellungen → Wiedergabe."
+          }
+        }
+      }
+    },
     "Tip: install mpv (`brew install mpv`) so JellyJelly can direct-play MKV, WebM, VP9, AV1, and more." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -4906,6 +6097,17 @@
         }
       }
     },
+    "Top Songs" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top-Titel"
+          }
+        }
+      }
+    },
     "Track %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4913,6 +6115,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Spur %@"
+          }
+        }
+      }
+    },
+    "transcoded from %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "transkodiert aus %@"
+          }
+        }
+      }
+    },
+    "Transcoding (server, HLS)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkodierung (Server, HLS)"
           }
         }
       }
@@ -4957,6 +6181,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Versuch es mit einem anderen Filter."
+          }
+        }
+      }
+    },
+    "Turn Off Shuffle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zufallswiedergabe ausschalten"
           }
         }
       }
@@ -5012,6 +6247,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ungesehen"
+          }
+        }
+      }
+    },
+    "Up Next" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als Nächstes"
           }
         }
       }
@@ -5140,6 +6386,17 @@
         }
       }
     },
+    "video copied" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video kopiert"
+          }
+        }
+      }
+    },
     "Videos" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5147,6 +6404,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Videos"
+          }
+        }
+      }
+    },
+    "Videos, channels, movies, shows, music…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Videos, Kanäle, Filme, Serien, Musik …"
           }
         }
       }
@@ -5184,6 +6452,17 @@
         }
       }
     },
+    "Visible to all users on the server" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für alle Benutzer des Servers sichtbar"
+          }
+        }
+      }
+    },
     "Volume" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5191,6 +6470,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lautstärke"
+          }
+        }
+      }
+    },
+    "Volume (⌘↑ and ⌘↓)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lautstärke (⌘↑ und ⌘↓)"
           }
         }
       }
@@ -5245,6 +6535,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Drehbuch"
+          }
+        }
+      }
+    },
+    "Year" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jahr"
           }
         }
       }

@@ -44,6 +44,18 @@ struct BaseItem: Codable, Identifiable, Hashable, Sendable {
     var childCount: Int?
     var recursiveItemCount: Int?
 
+    var album: String?
+    var albumId: String?
+    var albumArtist: String?
+    var albumArtists: [NameIdPair]?
+    var artists: [String]?
+    var artistItems: [NameIdPair]?
+    var albumPrimaryImageTag: String?
+    /// The entry of a track in a playlist, which moving and removing refer to. Only set on playlist items.
+    var playlistItemId: String?
+    var hasLyrics: Bool?
+    var canDelete: Bool?
+
     var imageTags: [String: String]?
     var backdropImageTags: [String]?
     var parentBackdropItemId: String?
@@ -198,6 +210,25 @@ struct PlaybackInfoResponse: Codable, Sendable {
     var errorCode: String?
 }
 
+struct PlaylistCreationResult: Codable, Sendable {
+    var id: String
+}
+
+struct PlaylistInfo: Codable, Sendable {
+    /// Whether every user of the server can see the playlist.
+    var openAccess: Bool?
+}
+
+struct LyricsResponse: Codable, Sendable {
+    var lyrics: [LyricLine]?
+}
+
+struct LyricLine: Codable, Hashable, Sendable {
+    var text: String?
+    /// The time the line is sung at, in ticks. Missing for lyrics without timing.
+    var start: Int64?
+}
+
 struct PublicSystemInfo: Codable, Sendable {
     var serverName: String?
     var version: String?
@@ -295,6 +326,10 @@ enum ItemType {
     static let collectionFolder = "CollectionFolder"
     static let userView = "UserView"
     static let folder = "Folder"
+    static let audio = "Audio"
+    static let musicAlbum = "MusicAlbum"
+    static let musicArtist = "MusicArtist"
+    static let playlist = "Playlist"
 }
 
 extension Int64 {
@@ -311,6 +346,12 @@ extension BaseItem {
     var isSeries: Bool { type == ItemType.series }
     var isSeason: Bool { type == ItemType.season }
     var isMovie: Bool { type == ItemType.movie }
+    var isAudio: Bool { type == ItemType.audio }
+    var isAlbum: Bool { type == ItemType.musicAlbum }
+    var isArtist: Bool { type == ItemType.musicArtist }
+    var isPlaylist: Bool { type == ItemType.playlist }
+    /// Songs, albums, artists, and playlists, which the music player plays instead of the video player.
+    var isMusic: Bool { isAudio || isAlbum || isArtist || (isPlaylist && mediaType != "Video") }
     var isPlayable: Bool {
         switch type {
         case ItemType.movie, ItemType.episode, ItemType.video, ItemType.musicVideo: return true
@@ -346,6 +387,28 @@ extension BaseItem {
         case let (nil, episode?): return String(localized: "E\(episode)", comment: "Episode number")
         default: return nil
         }
+    }
+
+    /// The performing artists of a song, or the album artist of an album.
+    var artistLine: String? {
+        if let artists, !artists.isEmpty {
+            return artists.joined(separator: ", ")
+        }
+        return albumArtist
+    }
+
+    /// The artist to open for a song or album, preferring the album artist.
+    var primaryArtist: NameIdPair? {
+        albumArtists?.first { $0.id != nil } ?? artistItems?.first { $0.id != nil }
+    }
+
+    /// The letter of the A–Z index, based on the sort name the server orders by, so "The Accountant" is filed under A, not T.
+    var indexLetter: String {
+        let name = sortName ?? displayName
+        guard let first = name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil).uppercased().first else {
+            return "#"
+        }
+        return first.isLetter ? String(first) : "#"
     }
 
     func imageTag(_ type: String) -> String? {

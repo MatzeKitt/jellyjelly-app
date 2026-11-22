@@ -85,7 +85,7 @@ struct LibraryView: View {
         // doesn't group letters the way indexLetter does.
         var seen: [String] = []
         for item in items {
-            let letter = indexLetter(item)
+            let letter = item.indexLetter
             if !seen.contains(letter) {
                 seen.append(letter)
             }
@@ -117,7 +117,7 @@ struct LibraryView: View {
             .overlay(alignment: .trailing) {
                 if letters.count > 3 {
                     LetterIndex(letters: letters) { letter in
-                        if let target = items.first(where: { indexLetter($0) == letter }) {
+                        if let target = items.first(where: { $0.indexLetter == letter }) {
                             withAnimation(.easeInOut(duration: 0.3)) {
                                 proxy.scrollTo(target.id, anchor: .top)
                             }
@@ -290,15 +290,6 @@ struct LibraryView: View {
         }
     }
 
-    /// Based on the sort name the server orders by, so "The Accountant" is filed under A, not T.
-    private func indexLetter(_ item: BaseItem) -> String {
-        let name = item.sortName ?? item.displayName
-        guard let first = name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil).uppercased().first else {
-            return "#"
-        }
-        return first.isLetter ? String(first) : "#"
-    }
-
     // MARK: - Loading
 
     private func query(startIndex: Int) -> ItemQuery {
@@ -395,7 +386,7 @@ struct FilterChip: View {
     }
 }
 
-private struct LetterIndex: View {
+struct LetterIndex: View {
     var letters: [String]
     var onSelect: (String) -> Void
     @Environment(\.palette) private var palette

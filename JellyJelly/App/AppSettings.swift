@@ -70,6 +70,37 @@ enum SegmentSkipMode: String, CaseIterable, Identifiable {
     }
 }
 
+enum MusicQuality: String, CaseIterable, Identifiable {
+    case original
+    case aac320
+    case aac256
+    case aac192
+    case aac128
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .original: String(localized: "Original")
+        case .aac320: String(localized: "AAC 320 kbps")
+        case .aac256: String(localized: "AAC 256 kbps")
+        case .aac192: String(localized: "AAC 192 kbps")
+        case .aac128: String(localized: "AAC 128 kbps")
+        }
+    }
+
+    /// The highest bitrate to stream, or `nil` for the original file.
+    var maxBitrate: Int? {
+        switch self {
+        case .original: nil
+        case .aac320: 320_000
+        case .aac256: 256_000
+        case .aac192: 192_000
+        case .aac128: 128_000
+        }
+    }
+}
+
 enum AppLanguage: String, CaseIterable, Identifiable {
     case system
     case english = "en"
@@ -157,6 +188,9 @@ final class AppSettings {
     var subtitlesEnabled: Bool { didSet { defaults.set(subtitlesEnabled, forKey: "subtitlesEnabled") } }
     var subtitleScale: Double { didSet { defaults.set(subtitleScale, forKey: "subtitleScale") } }
     var volume: Double { didSet { defaults.set(volume, forKey: "volume") } }
+    var musicQuality: MusicQuality { didSet { defaults.set(musicQuality.rawValue, forKey: "musicQuality") } }
+    /// Music keeps its own volume, since songs tend to be mastered louder than videos.
+    var musicVolume: Double { didSet { defaults.set(musicVolume, forKey: "musicVolume") } }
     var sidebarCollapsed: Bool { didSet { defaults.set(sidebarCollapsed, forKey: "sidebarCollapsed") } }
 
     private init() {
@@ -175,6 +209,7 @@ final class AppSettings {
             "subtitlesEnabled": false,
             "subtitleScale": 1.0,
             "volume": 100.0,
+            "musicVolume": 80.0,
             "sidebarCollapsed": false,
         ])
         theme = ThemeScheme(rawValue: defaults.string(forKey: "theme") ?? "") ?? .violetSignal
@@ -205,6 +240,8 @@ final class AppSettings {
         subtitlesEnabled = defaults.bool(forKey: "subtitlesEnabled")
         subtitleScale = defaults.double(forKey: "subtitleScale")
         volume = defaults.double(forKey: "volume")
+        musicQuality = MusicQuality(rawValue: defaults.string(forKey: "musicQuality") ?? "") ?? .original
+        musicVolume = defaults.double(forKey: "musicVolume")
         sidebarCollapsed = defaults.bool(forKey: "sidebarCollapsed")
     }
 }
