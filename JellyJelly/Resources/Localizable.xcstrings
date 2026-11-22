@@ -6615,6 +6615,98 @@
           }
         }
       }
+    },
+    "Right-click a movie, episode, video, or song and choose “Download” to use it offline. Seasons, series, channels, albums, and playlists can be downloaded in one go." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klicke mit der rechten Maustaste auf einen Film, eine Folge, ein Video oder einen Titel und wähle „Herunterladen“, um es offline zu nutzen. Staffeln, Serien, Kanäle, Alben und Playlists lassen sich in einem Rutsch herunterladen."
+          }
+        }
+      }
+    },
+    "Download Album" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Album herunterladen"
+          }
+        }
+      }
+    },
+    "Download Playlist" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playlist herunterladen"
+          }
+        }
+      }
+    },
+    "Remove the downloads of “%@”?" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloads von „%@“ entfernen?"
+          }
+        }
+      }
+    },
+    "Download for Offline Listening" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Offline-Hören herunterladen"
+          }
+        }
+      }
+    },
+    "Remove Downloads" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloads entfernen"
+          }
+        }
+      }
+    },
+    "The songs will no longer be available offline." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Titel sind dann nicht mehr offline verfügbar."
+          }
+        }
+      }
+    },
+    "%lld songs aren't downloaded yet." : {
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Titel ist noch nicht heruntergeladen."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Titel sind noch nicht heruntergeladen."
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

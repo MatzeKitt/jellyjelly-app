@@ -203,7 +203,7 @@ final class DownloadManager {
         return OfflineCopy(record: record, directory: directory)
     }
 
-    /// A saved artwork file (`thumb`, `poster`, or `avatar`), if the download has one.
+    /// A saved artwork file (`thumb`, `poster`, `avatar`, or `cover` for songs), if the download has one.
     func imageURL(for itemId: String, _ name: String) -> URL? {
         guard let url = directory(for: itemId)?.appending(path: "\(name).jpg"),
               FileManager.default.fileExists(atPath: url.path)
@@ -213,10 +213,11 @@ final class DownloadManager {
         return url
     }
 
-    /// Downloads belonging to a series or season.
+    /// Downloads belonging to a series, season, or album.
     func records(in container: BaseItem) -> [DownloadRecord] {
         records.values.filter { record in
             record.item.seriesId == container.id || record.item.seasonId == container.id || record.item.parentId == container.id
+                || record.item.albumId == container.id
         }
     }
 
@@ -243,7 +244,7 @@ final class DownloadManager {
         guard directoryURL != nil else {
             return
         }
-        for item in items where item.isPlayable && records[item.id] == nil {
+        for item in items where item.isDownloadable && records[item.id] == nil {
             let record = DownloadRecord(item: item, addedAt: .now)
             guard let directory = directory(for: item.id),
                   (try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)) != nil
@@ -416,8 +417,11 @@ final class DownloadManager {
                 record.mediaSourceId = source.id
                 record.fileName = "media." + Self.fileExtension(source)
                 record.expectedBytes = source.size
-                record.segments = (try? await client.mediaSegments(itemId: itemId)) ?? []
-                record.subtitles = await downloadSubtitles(item: item, source: source, client: client, into: directory)
+                // Songs have neither segments nor subtitles.
+                if !item.isAudio {
+                    record.segments = (try? await client.mediaSegments(itemId: itemId)) ?? []
+                    record.subtitles = await downloadSubtitles(item: item, source: source, client: client, into: directory)
+                }
                 await downloadArtwork(item: item, client: client, into: directory)
                 try Task.checkCancellation()
                 records[itemId] = record
@@ -571,7 +575,7 @@ final class DownloadManager {
     }
 
     private func downloadArtwork(item: BaseItem, client: JellyfinClient, into directory: URL) async {
-        let images: [(String, URL?)] = [
+        let images: [(String, URL?)] = item.isAudio ? [("cover", client.coverURL(item, width: 600))] : [
             ("thumb", client.thumbURL(item, width: 720)),
             ("poster", client.posterURL(item, width: 400)),
             ("avatar", client.avatarURL(item, width: 120)),

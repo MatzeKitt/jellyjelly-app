@@ -105,6 +105,8 @@ struct PlaylistView: View {
             .buttonStyle(CircleIconButtonStyle(size: 42, active: playlist.isFavorite))
             .help(playlist.isFavorite ? "Remove from Favorites" : "Add to Favorites")
 
+            MusicDownloadButton(container: playlist, songs: tracks)
+
             Menu {
                 Button {
                     app.music.playNext(tracks)

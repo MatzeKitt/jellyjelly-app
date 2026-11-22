@@ -81,12 +81,17 @@ private struct ItemMenuItems: View {
                 Label("Remove from Continue Watching", systemImage: "xmark.circle")
             }
         }
-        downloadActions
+        DownloadMenuItems(item: item, app: app)
     }
+}
 
-    @ViewBuilder
-    private var downloadActions: some View {
-        if item.isPlayable {
+/// Downloading, cancelling, retrying, or removing an item, or everything in a container.
+struct DownloadMenuItems: View {
+    var item: BaseItem
+    var app: AppModel
+
+    var body: some View {
+        if item.isDownloadable {
             Divider()
             switch app.downloads.status(of: item.id) {
             case nil:
@@ -119,7 +124,8 @@ private struct ItemMenuItems: View {
                     Label("Remove Download", systemImage: "trash")
                 }
             }
-        } else if item.isSeries || item.isSeason || item.type == ItemType.boxSet || item.type == ItemType.folder {
+        } else if item.isSeries || item.isSeason || item.isAlbum || (item.isPlaylist && item.isMusic)
+                    || item.type == ItemType.boxSet || item.type == ItemType.folder {
             Divider()
             Button {
                 app.download(item)
@@ -140,6 +146,12 @@ private struct ItemMenuItems: View {
     private var containerDownloadTitle: String {
         if item.isSeason {
             return String(localized: "Download Season")
+        }
+        if item.isAlbum {
+            return String(localized: "Download Album")
+        }
+        if item.isPlaylist {
+            return String(localized: "Download Playlist")
         }
         if item.isSeries {
             return app.isYouTube(item) ? String(localized: "Download Videos") : String(localized: "Download Series")

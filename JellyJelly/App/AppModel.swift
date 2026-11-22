@@ -84,7 +84,8 @@ struct DownloadRequest: Identifiable {
     var container: BaseItem
     var items: [BaseItem]
 
-    var unwatched: [BaseItem] { items.filter { !$0.isPlayed } }
+    /// Songs have no watched state, so an album or playlist always downloads in full.
+    var unwatched: [BaseItem] { container.isMusic ? items : items.filter { !$0.isPlayed } }
 
     static func size(of items: [BaseItem]) -> Int64 {
         items.reduce(0) { $0 + ($1.primaryMediaSource?.size ?? 0) }
@@ -432,9 +433,9 @@ final class AppModel {
 
     // MARK: - Downloads
 
-    /// Downloads a playable item right away; for series, seasons, and channels, asks first.
+    /// Downloads a video or song right away; for series, seasons, channels, albums, and playlists, asks first.
     func download(_ item: BaseItem) {
-        if item.isPlayable {
+        if item.isDownloadable {
             downloads.enqueue([item])
             return
         }
@@ -445,6 +446,15 @@ final class AppModel {
 
     private func requestDownload(of container: BaseItem) async {
         guard let client else {
+            return
+        }
+        if container.isMusic {
+            do {
+                let songs = try await songs(of: container, withSizes: true).filter { downloads.status(of: $0.id) == nil }
+                downloadRequest = DownloadRequest(container: container, items: songs)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
             return
         }
         let youTube = isYouTube(container)
@@ -470,7 +480,7 @@ final class AppModel {
     }
 
     func removeDownload(_ item: BaseItem) {
-        if item.isPlayable {
+        if item.isDownloadable {
             downloads.remove(item.id)
         } else {
             downloads.records(in: item).forEach { downloads.remove($0.id) }
