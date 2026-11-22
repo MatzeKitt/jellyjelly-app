@@ -9,7 +9,55 @@ enum SidebarSection: Hashable {
     case favorites
     case downloads
     case library(String)
+    case music(MusicSection)
     case settings
+}
+
+enum MusicSection: String, CaseIterable, Hashable {
+    case listenNow
+    case albums
+    case artists
+    case songs
+    case playlists
+
+    var title: String {
+        switch self {
+        case .listenNow: String(localized: "Listen Now")
+        case .albums: String(localized: "Albums")
+        case .artists: String(localized: "Artists")
+        case .songs: String(localized: "Songs")
+        case .playlists: String(localized: "Playlists")
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .listenNow: "play.circle.fill"
+        case .albums: "opticaldisc.fill"
+        case .artists: "music.mic"
+        case .songs: "music.note"
+        case .playlists: "music.note.list"
+        }
+    }
+}
+
+/// Which side panel the full Now Playing view shows.
+enum NowPlayingPanel: Hashable {
+    case queue
+    case lyrics
+}
+
+/// Creating a playlist, optionally with songs in it, or renaming one.
+enum PlaylistSheet: Identifiable {
+    case create(adding: [BaseItem])
+    case edit(BaseItem)
+
+    var id: String {
+        switch self {
+        case let .create(items): "create:" + items.map(\.id).joined(separator: ",")
+        case let .edit(playlist): "edit:" + playlist.id
+        }
+    }
 }
 
 enum Route: Hashable {
@@ -70,6 +118,17 @@ final class AppModel {
     var serverVersion: String?
     var libraries: [BaseItem] = []
     var channels: [BaseItem] = []
+    var musicLibraries: [BaseItem] = []
+    /// The user's music playlists, for "Add to Playlist" menus.
+    var musicPlaylists: [BaseItem] = []
+
+    @ObservationIgnored private(set) lazy var music = MusicPlayer(app: self)
+    /// Whether the Now Playing view covers the main window.
+    var showsNowPlaying = false
+    var nowPlayingPanel = NowPlayingPanel.queue
+    var playlistSheet: PlaylistSheet?
+    /// Bumped whenever a playlist's contents changed, so open playlist pages reload.
+    var playlistGeneration = 0
 
     var section: SidebarSection = .home {
         didSet {
@@ -149,10 +208,13 @@ final class AppModel {
         phase = .signedIn
         await client.reportCapabilities()
         await loadLibraries()
+        await music.restore()
     }
 
     func signOut() async {
         player?.close()
+        // The saved queue belongs to this user.
+        music.stop()
         // Downloads stay on disk for the next sign-in of the same user.
         downloads.deactivate()
         if let client {
@@ -166,6 +228,8 @@ final class AppModel {
         user = nil
         libraries = []
         channels = []
+        musicLibraries = []
+        musicPlaylists = []
         section = .home
         path = []
         phase = .signedOut
@@ -197,9 +261,14 @@ final class AppModel {
         }
         do {
             let views = try await client.userViews()
+            // Music has its own sidebar section instead of a library page.
             let unsupported: Set<String> = ["music", "books", "photos", "livetv", "playlists"]
             libraries = views.filter { !unsupported.contains($0.collectionType ?? "") }
+            musicLibraries = views.filter { $0.collectionType == "music" }
             await loadChannels()
+            if hasMusic {
+                await loadPlaylists()
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -267,17 +336,33 @@ final class AppModel {
         refreshGeneration += 1
         Task {
             await loadChannels()
+            if hasMusic {
+                await loadPlaylists()
+            }
         }
     }
 
     // MARK: - Navigation
 
     func open(_ item: BaseItem) {
+        showsNowPlaying = false
         if item.type == ItemType.collectionFolder || item.type == ItemType.userView {
             section = .library(item.id)
             return
         }
+        // A song opens on its album.
+        if item.isAudio, let albumId = item.albumId {
+            path.append(.item(BaseItem(id: albumId, name: item.album, type: ItemType.musicAlbum)))
+            return
+        }
         path.append(.item(item))
+    }
+
+    func openArtist(_ artist: NameIdPair) {
+        guard let id = artist.id else {
+            return
+        }
+        open(BaseItem(id: id, name: artist.name, type: ItemType.musicArtist))
     }
 
     func goBack() {
@@ -342,6 +427,7 @@ final class AppModel {
         changeSequence += 1
         lastChange = ItemChange(itemId: itemId, userData: data, sequence: changeSequence)
         downloads.apply(itemId, data)
+        music.apply(itemId, data)
     }
 
     // MARK: - Downloads
@@ -394,6 +480,10 @@ final class AppModel {
     // MARK: - Playback
 
     func play(_ item: BaseItem, queue: [BaseItem] = [], mode: StartMode = .automatic) {
+        if item.isMusic {
+            playMusic(item)
+            return
+        }
         Task {
             await startPlayback(item, queue: queue, mode: mode)
         }
@@ -438,6 +528,7 @@ final class AppModel {
         if let player {
             player.close()
         }
+        music.yieldToVideo()
         let model = PlayerModel(app: self, client: client, item: target, queue: queue, startAt: startAt)
         player = model
         model.start()
@@ -474,6 +565,7 @@ final class AppModel {
     /// shelves and the channels' unwatched counts reflect what was just watched.
     func playerDidClose(after reports: Task<Void, Never>?) {
         player = nil
+        music.videoDidClose()
         Task {
             await reports?.value
             refresh()

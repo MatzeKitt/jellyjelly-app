@@ -66,6 +66,22 @@ extension JellyfinClient {
         return nil
     }
 
+    /// Square cover art: the item's own, or the album's for a song.
+    func coverURL(_ item: BaseItem, width: Int = 400) -> URL? {
+        if let tag = item.imageTag("Primary") {
+            return imageURL(itemId: item.id, type: "Primary", tag: tag, maxWidth: width)
+        }
+        if let albumId = item.albumId, let tag = item.albumPrimaryImageTag {
+            return imageURL(itemId: albumId, type: "Primary", tag: tag, maxWidth: width)
+        }
+        return nil
+    }
+
+    /// An artist's picture. Songs and albums only carry the artist's ID, so this goes without a tag.
+    func artistImageURL(_ artistId: String, width: Int = 400) -> URL {
+        imageURL(itemId: artistId, type: "Primary", tag: nil, maxWidth: width)
+    }
+
     func personImageURL(_ person: Person, width: Int = 200) -> URL? {
         guard let tag = person.primaryImageTag else {
             return nil

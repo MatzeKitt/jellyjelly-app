@@ -7,7 +7,7 @@ import SwiftUI
 /// Post a distributed notification named `media.kitt.JellyJelly.debug` whose object is a
 /// command string, e.g. `snapshot /tmp/shot.png`, `section subscriptions`, `open <itemId>`,
 /// `play <itemId>`, `player pause|resume|stats|next|close|pip|seek <seconds>`, `download <itemId>`,
-/// `remove-download <itemId>`, `state /tmp/state.json`.
+/// `remove-download <itemId>`, `music play|shuffle|next|<itemId>…`, `state /tmp/state.json`.
 @MainActor
 enum DebugHooks {
     static func install() {
@@ -40,6 +40,8 @@ enum DebugHooks {
             default:
                 if argument.hasPrefix("library:") {
                     app.section = .library(String(argument.dropFirst(8)))
+                } else if argument.hasPrefix("music:"), let section = MusicSection(rawValue: String(argument.dropFirst(6))) {
+                    app.section = .music(section)
                 }
             }
         case "theme":
@@ -100,12 +102,52 @@ enum DebugHooks {
             case "pip": player.togglePictureInPicture()
             default: break
             }
+        case "music":
+            music(argument)
         case "state":
             writeState(to: argument)
         case "quit":
             NSApp.terminate(nil)
         default:
             break
+        }
+    }
+
+    /// `music play|shuffle|queue|next-up <itemId>`, `music toggle|next|previous|stop|shuffle-mode|repeat`,
+    /// `music seek <seconds>`, `music volume <0–100>`, `music nowplaying|lyrics|queue-panel|close`.
+    private static func music(_ argument: String) {
+        let app = AppModel.shared
+        let music = app.music
+        let parts = argument.split(separator: " ").map(String.init)
+        let value = parts.count > 1 ? parts[1] : ""
+        switch parts.first {
+        case "play", "shuffle", "queue", "next-up":
+            Task {
+                guard let item = try? await app.client?.item(value) else {
+                    return
+                }
+                switch parts.first {
+                case "queue": app.queueMusic(item, next: false)
+                case "next-up": app.queueMusic(item, next: true)
+                default: app.playMusic(item, shuffle: parts.first == "shuffle")
+                }
+            }
+        case "toggle": music.togglePlayPause()
+        case "next": music.next()
+        case "previous": music.previous()
+        case "stop": music.stop()
+        case "shuffle-mode": music.toggleShuffle()
+        case "repeat": music.cycleRepeatMode()
+        case "seek": music.seek(to: Double(value) ?? 0)
+        case "volume": music.volume = Double(value) ?? music.volume
+        case "nowplaying":
+            app.nowPlayingPanel = .queue
+            app.showsNowPlaying = true
+        case "lyrics":
+            app.nowPlayingPanel = .lyrics
+            app.showsNowPlaying = true
+        case "close": app.showsNowPlaying = false
+        default: break
         }
     }
 
@@ -144,6 +186,8 @@ enum DebugHooks {
             "path": app.path.count,
             "libraries": app.libraries.map(\.displayName),
             "channels": app.channels.map(\.displayName),
+            "musicLibraries": app.musicLibraries.map(\.displayName),
+            "playlists": app.musicPlaylists.map { "\($0.id): \($0.displayName)" },
             "resumePrompt": app.resumePrompt?.item.id as Any,
             "error": app.errorMessage as Any,
             "downloads": app.downloads.records.values.map { record in
@@ -180,6 +224,31 @@ enum DebugHooks {
                 "stats": player.statsSections.map { section in
                     [section.title: section.rows.map { "\($0.label)=\($0.value)" }]
                 },
+            ]
+        }
+        let music = app.music
+        if let current = music.current {
+            let lyrics: Any
+            switch music.lyrics {
+            case .none: lyrics = "none"
+            case .loading: lyrics = "loading"
+            case let .loaded(lines): lyrics = lines.count
+            }
+            state["music"] = [
+                "item": current.id,
+                "title": current.displayName,
+                "index": music.index,
+                "queue": music.entries.map(\.item.displayName),
+                "position": music.position,
+                "duration": music.duration,
+                "playing": music.isPlaying,
+                "buffering": music.isBuffering,
+                "shuffled": music.isShuffled,
+                "repeat": music.repeatMode.rawValue,
+                "volume": music.volume,
+                "stream": music.stream?.summary as Any,
+                "lyrics": lyrics,
+                "nowPlayingShown": app.showsNowPlaying,
             ]
         }
         if let data = try? JSONSerialization.data(withJSONObject: state, options: [.prettyPrinted, .sortedKeys]) {

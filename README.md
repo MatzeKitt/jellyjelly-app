@@ -15,6 +15,9 @@ A native macOS client for Jellyfin, modeled on [JellyGoose](https://jellygoose.a
 - **Picture in picture** (press `P`, or ⌥⌘P from anywhere in the app): the video moves into a small floating window that stays on top, across Spaces and next to full-screen apps, so you can keep browsing the library or use other apps. Drag it and it snaps into the nearest screen corner (hold ⌘ to place it anywhere), resize it from its corners and edges, and hover over it for play/pause, skipping, and the progress bar. Double-click or press Esc to return to the full player. It works with both engines, and app-rendered subtitles and the segment skip button carry over. By default, a playing video also moves into picture in picture when you switch to another app and returns to the full player when you come back (Settings → Playback).
 - **Stats overlay** (press `I`): play method, file, codecs, decoder (hardware or software), dropped frames, buffer level and graph, download rate, and stalls.
 - **Downloads for offline viewing**: right-click any movie, episode, or video, or use the download button on its page. Seasons, series, and channels download in one go, with the option to fetch only unwatched items. The original file is stored together with subtitles, chapters, media segments, and artwork in `~/Library/Application Support/JellyJelly/Downloads`. Downloaded items always play from disk. Progress made offline is synced to the server once it can be reached again. Downloading requires the "Allow media downloading" permission on your Jellyfin user.
+- **Music**: libraries of the type "Music" get their own sidebar section with Listen Now (recently played and added, most played, favorite songs, albums to discover), albums, artists, songs, and playlists, each with sorting, a favorites filter, and an A–Z index. Album pages group songs by disc; artist pages show top songs, albums, and the albums an artist appears on. Music also shows up in Search and Favorites.
+- **Now Playing**: a player bar at the bottom of the window, and a full view with the artwork, the queue, and lyrics (press ⌘P). The queue shows the history and what's up next. Drag songs to reorder them, click one to jump to it, and use shuffle and repeat (all or one). Right-click any song, album, artist, or playlist to play it next, add it to the queue, or start a Jellyfin Instant Mix. The next song is loaded ahead of time so it follows without a pause, and the queue is restored at the next launch. Timed lyrics follow the song; click a line to jump there. Music plays the original file when the Mac can decode it and is otherwise streamed as AAC; Settings → Music → Streaming quality caps the bitrate. Media keys, Now Playing in Control Center, and the Dock menu control music too.
+- **Playlists**: create, rename, and delete playlists, add songs, albums, or artists to them, remove songs, and drag songs into a new order. Changes are saved on the server, so other Jellyfin apps see them.
 - Chapters, trickplay scrub previews, skipping intros, credits, and sponsors via Jellyfin media segments, Up Next with autoplay, subtitles, audio tracks, playback speed, Now Playing and media keys.
 - Six color schemes (Violet Signal, Ember, Evergreen, Blue Hour, Rose Noir, True Black), channel pages, library browsing with sort, filter, and A–Z index, search, favorites, and Quick Connect.
 
@@ -86,3 +89,14 @@ Libraries with "YouTube" in their name are detected automatically. To choose the
 | S or Return | Skip segment |
 | N | Next video |
 | Esc | Leave full screen or picture in picture, then close |
+
+## Keyboard shortcuts (music)
+
+| Keys | Action |
+|---|---|
+| Space | Play/pause |
+| ⌘← / ⌘→ | Previous/next song |
+| ⌘↑ / ⌘↓ | Volume |
+| ⌘P | Show or hide Now Playing |
+| ⇧⌘L | Lyrics |
+| ⌘5 – ⌘9 | Listen Now, Albums, Artists, Songs, Playlists |

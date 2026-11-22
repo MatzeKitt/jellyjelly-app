@@ -203,7 +203,7 @@ final class JellyfinClient: @unchecked Sendable {
 
     func reportCapabilities() async {
         let capabilities: [String: Any] = [
-            "PlayableMediaTypes": ["Video"],
+            "PlayableMediaTypes": ["Video", "Audio"],
             "SupportedCommands": [],
             "SupportsMediaControl": false,
             "SupportsPersistentIdentifier": true,
@@ -290,6 +290,82 @@ final class JellyfinClient: @unchecked Sendable {
             URLQueryItem(name: "sortBy", value: "SortName"),
         ])
         return response.items
+    }
+
+    // MARK: - Music
+
+    /// Artists with albums of their own, as opposed to every artist that appears on a song.
+    func albumArtists(_ query: ItemQuery) async throws -> ItemsResponse {
+        try await get("/Artists/AlbumArtists", query: [userQuery] + query.queryItems)
+    }
+
+    /// Songs similar to a song, album, artist, or playlist, which Jellyfin calls an Instant Mix.
+    func instantMix(itemId: String, limit: Int = 100) async throws -> [BaseItem] {
+        let response: ItemsResponse = try await get("/Items/\(itemId)/InstantMix", query: [
+            userQuery,
+            URLQueryItem(name: "limit", value: String(limit)),
+            URLQueryItem(name: "fields", value: Self.standardFields.joined(separator: ",")),
+            URLQueryItem(name: "enableUserData", value: "true"),
+        ])
+        return response.items
+    }
+
+    /// The songs of a playlist in their order, each with its `playlistItemId`.
+    func playlistItems(_ playlistId: String) async throws -> [BaseItem] {
+        let response: ItemsResponse = try await get("/Playlists/\(playlistId)/Items", query: [
+            userQuery,
+            URLQueryItem(name: "fields", value: Self.standardFields.joined(separator: ",")),
+            URLQueryItem(name: "enableUserData", value: "true"),
+        ])
+        return response.items
+    }
+
+    func playlistInfo(_ playlistId: String) async throws -> PlaylistInfo {
+        try await get("/Playlists/\(playlistId)")
+    }
+
+    /// Returns the ID of the new playlist.
+    func createPlaylist(name: String, itemIds: [String], isPublic: Bool) async throws -> String {
+        let result: PlaylistCreationResult = try await send("POST", "/Playlists", json: [
+            "Name": name,
+            "Ids": itemIds,
+            "UserId": userId ?? "",
+            "MediaType": "Audio",
+            "IsPublic": isPublic,
+        ])
+        return result.id
+    }
+
+    func updatePlaylist(_ playlistId: String, name: String, isPublic: Bool) async throws {
+        let body = try JSONSerialization.data(withJSONObject: ["Name": name, "IsPublic": isPublic])
+        try await send("POST", "/Playlists/\(playlistId)", body: body)
+    }
+
+    func addToPlaylist(_ playlistId: String, itemIds: [String]) async throws {
+        try await send("POST", "/Playlists/\(playlistId)/Items", query: [
+            userQuery,
+            URLQueryItem(name: "ids", value: itemIds.joined(separator: ",")),
+        ])
+    }
+
+    func removeFromPlaylist(_ playlistId: String, entryIds: [String]) async throws {
+        try await send("DELETE", "/Playlists/\(playlistId)/Items", query: [
+            URLQueryItem(name: "entryIds", value: entryIds.joined(separator: ",")),
+        ])
+    }
+
+    func movePlaylistItem(_ playlistId: String, entryId: String, to index: Int) async throws {
+        try await send("POST", "/Playlists/\(playlistId)/Items/\(entryId)/Move/\(index)")
+    }
+
+    /// Deletes an item from the server; for playlists, only the playlist, not its songs.
+    func deleteItem(_ itemId: String) async throws {
+        try await send("DELETE", "/Items/\(itemId)")
+    }
+
+    func lyrics(itemId: String) async throws -> [LyricLine] {
+        let response: LyricsResponse = try await get("/Audio/\(itemId)/Lyrics")
+        return response.lyrics ?? []
     }
 
     // MARK: - User data
@@ -395,6 +471,61 @@ final class JellyfinClient: @unchecked Sendable {
         ],
     ]
 
+    /// Asks the server how to stream a song: the original file if AVPlayer can play it within the
+    /// bitrate limit, otherwise an AAC stream over HLS.
+    ///
+    /// - Parameters:
+    ///   - maxBitrate: The highest bitrate to stream; `nil` for the original quality.
+    ///   - forceTranscoding: Skips the original file, after AVPlayer failed to open it.
+    func audioPlaybackInfo(itemId: String, maxBitrate: Int?, forceTranscoding: Bool = false) async throws -> PlaybackInfoResponse {
+        var profile = Self.audioProfile
+        let limit = maxBitrate ?? 2_000_000_000
+        profile["MaxStreamingBitrate"] = limit
+        profile["MaxStaticMusicBitrate"] = limit
+        profile["MusicStreamingTranscodingBitrate"] = maxBitrate ?? 320_000
+        let body: [String: Any] = [
+            "UserId": userId ?? "",
+            "EnableDirectPlay": !forceTranscoding,
+            "EnableDirectStream": false,
+            "EnableTranscoding": true,
+            "MaxStreamingBitrate": limit,
+            "DeviceProfile": profile,
+        ]
+        return try await send("POST", "/Items/\(itemId)/PlaybackInfo", query: [
+            userQuery,
+            URLQueryItem(name: "enableDirectPlay", value: String(!forceTranscoding)),
+            URLQueryItem(name: "enableDirectStream", value: "false"),
+            URLQueryItem(name: "enableTranscoding", value: "true"),
+        ], json: body)
+    }
+
+    /// Audio AVPlayer decodes natively plays as it is; everything else becomes AAC.
+    static let audioProfile: [String: Any] = [
+        "Name": "JellyJelly Music",
+        "DirectPlayProfiles": [
+            ["Type": "Audio", "Container": "mp3", "AudioCodec": "mp3"],
+            ["Type": "Audio", "Container": "aac", "AudioCodec": "aac"],
+            ["Type": "Audio", "Container": "m4a,m4b,mp4,mov", "AudioCodec": "aac,alac,mp3,flac"],
+            ["Type": "Audio", "Container": "flac", "AudioCodec": "flac"],
+            ["Type": "Audio", "Container": "wav"],
+            ["Type": "Audio", "Container": "aiff,aif"],
+            ["Type": "Audio", "Container": "caf"],
+        ],
+        "TranscodingProfiles": [[
+            "Type": "Audio",
+            "Context": "Streaming",
+            "Protocol": "hls",
+            "Container": "ts",
+            "AudioCodec": "aac",
+            "MaxAudioChannels": "2",
+            "MinSegments": 1,
+            "BreakOnNonKeyFrames": true,
+        ]],
+        "ContainerProfiles": [],
+        "CodecProfiles": [],
+        "SubtitleProfiles": [],
+    ]
+
     func mediaSegments(itemId: String) async throws -> [MediaSegment] {
         let response: SegmentsResponse = try await get("/MediaSegments/\(itemId)")
         return response.items
@@ -448,6 +579,17 @@ final class JellyfinClient: @unchecked Sendable {
     /// The original file, served byte-for-byte. `static=true` disables any server-side processing.
     func directStreamURL(itemId: String, mediaSource: MediaSource, playSessionId: String?) -> URL {
         url("/Videos/\(itemId)/stream", query: [
+            URLQueryItem(name: "static", value: "true"),
+            URLQueryItem(name: "mediaSourceId", value: mediaSource.id),
+            URLQueryItem(name: "playSessionId", value: playSessionId),
+            URLQueryItem(name: "deviceId", value: identity.deviceId),
+            URLQueryItem(name: "ApiKey", value: token),
+        ])
+    }
+
+    /// The original audio file, served byte-for-byte.
+    func audioStreamURL(itemId: String, mediaSource: MediaSource, playSessionId: String?) -> URL {
+        url("/Audio/\(itemId)/stream", query: [
             URLQueryItem(name: "static", value: "true"),
             URLQueryItem(name: "mediaSourceId", value: mediaSource.id),
             URLQueryItem(name: "playSessionId", value: playSessionId),
@@ -511,6 +653,11 @@ struct ItemQuery: Sendable {
     var includeItemTypes: [String] = []
     var excludeItemTypes: [String] = []
     var ids: [String] = []
+    /// Songs or albums an artist performs on.
+    var artistIds: [String] = []
+    /// Albums released under an artist's name.
+    var albumArtistIds: [String] = []
+    var mediaTypes: [String] = []
     var recursive = true
     var sortBy: [String] = ["SortName"]
     var sortOrder: [String] = ["Ascending"]
@@ -549,6 +696,15 @@ struct ItemQuery: Sendable {
         }
         if !ids.isEmpty {
             items.append(URLQueryItem(name: "ids", value: ids.joined(separator: ",")))
+        }
+        if !artistIds.isEmpty {
+            items.append(URLQueryItem(name: "artistIds", value: artistIds.joined(separator: ",")))
+        }
+        if !albumArtistIds.isEmpty {
+            items.append(URLQueryItem(name: "albumArtistIds", value: albumArtistIds.joined(separator: ",")))
+        }
+        if !mediaTypes.isEmpty {
+            items.append(URLQueryItem(name: "mediaTypes", value: mediaTypes.joined(separator: ",")))
         }
         if !filters.isEmpty {
             items.append(URLQueryItem(name: "filters", value: filters.joined(separator: ",")))

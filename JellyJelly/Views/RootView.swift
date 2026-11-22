@@ -20,6 +20,12 @@ struct RootView: View {
                     .transition(.opacity)
             }
 
+            if app.showsNowPlaying, app.phase == .signedIn, app.music.current != nil {
+                NowPlayingView()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .zIndex(4)
+            }
+
             if let request = app.resumePrompt {
                 ResumePrompt(request: request)
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
@@ -35,6 +41,12 @@ struct RootView: View {
         .animation(.easeInOut(duration: 0.25), value: app.phase)
         .animation(.easeInOut(duration: 0.2), value: app.showsFullPlayer)
         .animation(.easeInOut(duration: 0.18), value: app.resumePrompt?.id)
+        .animation(.spring(response: 0.4, dampingFraction: 0.9), value: app.showsNowPlaying)
+        .sheet(item: $app.playlistSheet) { request in
+            PlaylistEditor(request: request)
+                .environment(app)
+                .environment(\.palette, palette)
+        }
         .task {
             await app.restoreSession()
         }
@@ -166,6 +178,10 @@ struct ContentStack: View {
             }
         }
         .animation(.easeOut(duration: 0.22), value: app.path.count)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            NowPlayingBar()
+        }
+        .animation(.easeOut(duration: 0.25), value: app.music.current == nil)
     }
 
     @ViewBuilder
@@ -187,6 +203,10 @@ struct ContentStack: View {
             } else {
                 LoadingView()
             }
+        case .music(.listenNow):
+            MusicHomeView()
+        case let .music(section):
+            MusicBrowseView(section: section)
         case .settings:
             SettingsView(embedded: true)
         }
@@ -196,7 +216,13 @@ struct ContentStack: View {
     private func routeView(_ route: Route) -> some View {
         switch route {
         case let .item(item):
-            if item.isSeries && app.isYouTube(item) {
+            if item.isAlbum {
+                AlbumView(album: item)
+            } else if item.isArtist {
+                ArtistView(artist: item)
+            } else if item.isPlaylist {
+                PlaylistView(playlist: item)
+            } else if item.isSeries && app.isYouTube(item) {
                 ChannelView(channel: item)
             } else if item.isSeries {
                 SeriesView(series: item)

@@ -18,6 +18,15 @@ private struct ItemMenuItems: View {
     var app: AppModel
 
     var body: some View {
+        if item.isMusic {
+            MusicMenuItems(item: item, app: app)
+        } else {
+            videoItems
+        }
+    }
+
+    @ViewBuilder
+    private var videoItems: some View {
         if item.isPlayable || item.isSeries || item.isSeason {
             Button {
                 app.play(item)

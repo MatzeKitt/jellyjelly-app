@@ -25,18 +25,15 @@ struct Sidebar: View {
                     SidebarRow(title: String(localized: "Favorites"), systemImage: "heart.fill", section: .favorites)
                     SidebarRow(title: String(localized: "Downloads"), systemImage: "arrow.down.circle.fill", section: .downloads)
 
-                    if !app.libraries.isEmpty {
-                        if collapsed {
-                            Divider().overlay(palette.hairline).padding(.vertical, 10).padding(.horizontal, 18)
-                        } else {
-                            Text("LIBRARIES")
-                                .font(.system(size: 10, weight: .bold))
-                                .tracking(1.2)
-                                .foregroundStyle(palette.tertiaryText)
-                                .padding(.horizontal, 26)
-                                .padding(.top, 22)
-                                .padding(.bottom, 6)
+                    if app.hasMusic {
+                        groupHeader("MUSIC")
+                        ForEach(MusicSection.allCases, id: \.self) { section in
+                            SidebarRow(title: section.title, systemImage: section.systemImage, section: .music(section))
                         }
+                    }
+
+                    if !app.libraries.isEmpty {
+                        groupHeader("LIBRARIES")
                         ForEach(app.libraries) { library in
                             SidebarRow(title: library.displayName, systemImage: icon(for: library), section: .library(library.id))
                         }
@@ -128,6 +125,21 @@ struct Sidebar: View {
         .menuStyle(.button)
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
+    }
+
+    @ViewBuilder
+    private func groupHeader(_ title: LocalizedStringKey) -> some View {
+        if collapsed {
+            Divider().overlay(palette.hairline).padding(.vertical, 10).padding(.horizontal, 18)
+        } else {
+            Text(title)
+                .font(.system(size: 10, weight: .bold))
+                .tracking(1.2)
+                .foregroundStyle(palette.tertiaryText)
+                .padding(.horizontal, 26)
+                .padding(.top, 22)
+                .padding(.bottom, 6)
+        }
     }
 
     private func icon(for library: BaseItem) -> String {
