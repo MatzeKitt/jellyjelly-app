@@ -85,16 +85,36 @@ struct JellyJellyApp: App {
                     .disabled(app.player == nil)
                 Divider()
                 // ⌘← and ⌘→ come from the music player's key monitor, so they still move the cursor in text fields.
-                Button("Previous Song (⌘←)") { app.music.previous() }
-                    .disabled(app.player != nil || app.music.current == nil)
-                Button("Next Song (⌘→)") { app.music.next() }
-                    .disabled(app.player != nil || !app.music.hasNext)
-                Button(app.music.isShuffled ? "Turn Off Shuffle" : "Shuffle") { app.music.toggleShuffle() }
+                if app.music.book != nil {
+                    Button("Previous Chapter (⌘←)") { app.music.previous() }
+                        .disabled(app.player != nil)
+                    Button("Next Chapter (⌘→)") { app.music.next() }
+                        .disabled(app.player != nil || !app.music.hasNext)
+                    Button("Back \(Int(app.settings.audiobookSkipBack)) Seconds (⇧⌘←)") { app.music.skip(by: -app.settings.audiobookSkipBack) }
+                        .disabled(app.player != nil)
+                    Button("Forward \(Int(app.settings.audiobookSkipForward)) Seconds (⇧⌘→)") { app.music.skip(by: app.settings.audiobookSkipForward) }
+                        .disabled(app.player != nil)
+                    Picker("Playback Speed", selection: Binding(get: { app.music.rate }, set: { app.music.setRate($0) })) {
+                        ForEach(PlaybackSpeed.options, id: \.self) { rate in
+                            Text(PlaybackSpeed.label(rate)).tag(rate)
+                        }
+                    }
+                } else {
+                    Button("Previous Song (⌘←)") { app.music.previous() }
+                        .disabled(app.player != nil || app.music.current == nil)
+                    Button("Next Song (⌘→)") { app.music.next() }
+                        .disabled(app.player != nil || !app.music.hasNext)
+                    Button(app.music.isShuffled ? "Turn Off Shuffle" : "Shuffle") { app.music.toggleShuffle() }
+                        .disabled(app.music.current == nil)
+                    Menu("Repeat") {
+                        Toggle("Off", isOn: repeatBinding(.off))
+                        Toggle("All", isOn: repeatBinding(.all))
+                        Toggle("One", isOn: repeatBinding(.one))
+                    }
                     .disabled(app.music.current == nil)
-                Menu("Repeat") {
-                    Toggle("Off", isOn: repeatBinding(.off))
-                    Toggle("All", isOn: repeatBinding(.all))
-                    Toggle("One", isOn: repeatBinding(.one))
+                }
+                Menu("Sleep Timer") {
+                    SleepTimerItems(music: app.music)
                 }
                 .disabled(app.music.current == nil)
                 Divider()
@@ -106,8 +126,8 @@ struct JellyJellyApp: App {
                     app.showsNowPlaying = true
                 }
                 .keyboardShortcut("l", modifiers: [.command, .shift])
-                .disabled(app.music.current == nil)
-                Button("Clear Queue and Stop Music") { app.music.stop() }
+                .disabled(app.music.current == nil || app.music.book != nil)
+                Button(app.music.book == nil ? "Clear Queue and Stop Music" : "Stop Audiobook") { app.music.stop() }
                     .disabled(app.music.current == nil)
             }
         }
@@ -166,7 +186,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return .terminateNow
     }
 
-    /// Controls for the music player in the Dock icon's menu.
+    /// Controls for the music player, or the audiobook, in the Dock icon's menu.
     func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
         // Built inside but returned outside the closure, since NSMenu isn't Sendable.
         var menu: NSMenu?
@@ -176,15 +196,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
             let dockMenu = NSMenu()
-            let title = NSMenuItem(title: [item.displayName, item.artistLine].compactMap { $0 }.joined(separator: " – "), action: nil, keyEquivalent: "")
+            let heading = music.book.map { [$0.title, $0.author].compactMap { $0 } } ?? [item.displayName, item.artistLine].compactMap { $0 }
+            let title = NSMenuItem(title: heading.joined(separator: " – "), action: nil, keyEquivalent: "")
             title.isEnabled = false
             dockMenu.addItem(title)
             dockMenu.addItem(.separator())
             dockMenu.addItem(dockItem(music.isPlaying ? String(localized: "Pause") : String(localized: "Play"), #selector(dockPlayPause)))
-            dockMenu.addItem(dockItem(String(localized: "Next"), #selector(dockNext), enabled: music.hasNext))
-            dockMenu.addItem(dockItem(String(localized: "Previous"), #selector(dockPrevious)))
-            dockMenu.addItem(.separator())
-            dockMenu.addItem(dockItem(item.isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites"), #selector(dockFavorite)))
+            if music.book != nil {
+                let settings = AppModel.shared.settings
+                dockMenu.addItem(dockItem(String(localized: "Back \(Int(settings.audiobookSkipBack)) Seconds"), #selector(dockSkipBack)))
+                dockMenu.addItem(dockItem(String(localized: "Forward \(Int(settings.audiobookSkipForward)) Seconds"), #selector(dockSkipForward)))
+                dockMenu.addItem(dockItem(String(localized: "Next Chapter"), #selector(dockNext), enabled: music.hasNext))
+                dockMenu.addItem(dockItem(String(localized: "Previous Chapter"), #selector(dockPrevious)))
+            } else {
+                dockMenu.addItem(dockItem(String(localized: "Next"), #selector(dockNext), enabled: music.hasNext))
+                dockMenu.addItem(dockItem(String(localized: "Previous"), #selector(dockPrevious)))
+                dockMenu.addItem(.separator())
+                dockMenu.addItem(dockItem(item.isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites"), #selector(dockFavorite)))
+            }
             menu = dockMenu
         }
         return menu
@@ -207,6 +236,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func dockPrevious() {
         MainActor.assumeIsolated { AppModel.shared.music.previous() }
+    }
+
+    @objc private func dockSkipBack() {
+        MainActor.assumeIsolated { AppModel.shared.music.skip(by: -AppModel.shared.settings.audiobookSkipBack) }
+    }
+
+    @objc private func dockSkipForward() {
+        MainActor.assumeIsolated { AppModel.shared.music.skip(by: AppModel.shared.settings.audiobookSkipForward) }
     }
 
     @objc private func dockFavorite() {

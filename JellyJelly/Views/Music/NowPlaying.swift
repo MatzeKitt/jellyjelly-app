@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Bar
 
-/// The player at the bottom of the main window while music is loaded.
+/// The player at the bottom of the main window while music or an audiobook is loaded.
 struct NowPlayingBar: View {
     @Environment(AppModel.self) private var app
     @Environment(\.palette) private var palette
@@ -10,29 +10,38 @@ struct NowPlayingBar: View {
     var body: some View {
         let music = app.music
         if let item = music.current {
+            let span = music.seekSpan
             HStack(spacing: 20) {
                 HStack(spacing: 12) {
                     Button {
                         app.showsNowPlaying = true
                     } label: {
-                        CoverArt(url: app.client?.coverURL(item, width: 120), cornerRadius: 6)
+                        CoverArt(url: music.coverURL(app: app, width: 120), cornerRadius: 6, systemImage: music.book == nil ? "music.note" : "book.closed.fill")
                             .frame(width: 50, height: 50)
                             .shadow(color: .black.opacity(0.35), radius: 6, y: 3)
                     }
                     .buttonStyle(.plain)
                     .help("Show Now Playing (⌘P)")
-                    TrackTitle(item: item, size: 13)
+                    if let book = music.book {
+                        BookTitle(book: book, chapter: music.currentChapter, size: 13)
+                    } else {
+                        TrackTitle(item: item, size: 13)
+                    }
                 }
                 .frame(width: 290, alignment: .leading)
 
                 Spacer(minLength: 8)
 
                 VStack(spacing: 2) {
-                    MusicTransport(music: music, size: 30)
+                    if music.book != nil {
+                        BookTransport(music: music, size: 30)
+                    } else {
+                        MusicTransport(music: music, size: 30)
+                    }
                     HStack(spacing: 10) {
-                        TimeLabel(seconds: music.position)
+                        TimeLabel(seconds: span.position)
                         MusicSeekBar(music: music)
-                        TimeLabel(seconds: music.duration)
+                        TimeLabel(seconds: span.duration)
                     }
                 }
                 .frame(maxWidth: 560)
@@ -40,13 +49,22 @@ struct NowPlayingBar: View {
                 Spacer(minLength: 8)
 
                 HStack(spacing: 4) {
-                    MusicControlButton(systemImage: "quote.bubble", help: "Lyrics (⇧⌘L)", active: app.showsNowPlaying && app.nowPlayingPanel == .lyrics) {
-                        show(.lyrics)
+                    if music.book != nil {
+                        BookSpeedMenu(music: music)
+                        SleepTimerMenu(music: music)
+                        MusicControlButton(systemImage: "list.bullet", help: "Chapters", active: app.showsNowPlaying) {
+                            show(.chapters)
+                        }
+                    } else {
+                        SleepTimerMenu(music: music)
+                        MusicControlButton(systemImage: "quote.bubble", help: "Lyrics (⇧⌘L)", active: app.showsNowPlaying && app.nowPlayingPanel == .lyrics) {
+                            show(.lyrics)
+                        }
+                        MusicControlButton(systemImage: "list.bullet", help: "Queue", active: app.showsNowPlaying && app.nowPlayingPanel == .queue) {
+                            show(.queue)
+                        }
                     }
-                    MusicControlButton(systemImage: "list.bullet", help: "Queue", active: app.showsNowPlaying && app.nowPlayingPanel == .queue) {
-                        show(.queue)
-                    }
-                    MusicVolume(music: music, width: 90)
+                    MusicVolume(music: music, width: music.book == nil ? 80 : 70)
                     MusicControlButton(systemImage: app.showsNowPlaying ? "chevron.down" : "chevron.up",
                                        help: app.showsNowPlaying ? "Hide Now Playing (⌘P)" : "Show Now Playing (⌘P)") {
                         app.showsNowPlaying.toggle()
@@ -69,9 +87,9 @@ struct NowPlayingBar: View {
         }
     }
 
-    /// Opens Now Playing on a panel, or closes it when that panel is already showing.
+    /// Opens Now Playing on a panel, or closes it when that panel is already showing. Books only have chapters.
     private func show(_ panel: NowPlayingPanel) {
-        if app.showsNowPlaying, app.nowPlayingPanel == panel {
+        if app.showsNowPlaying, app.nowPlayingPanel == panel || app.music.book != nil {
             app.showsNowPlaying = false
         } else {
             app.nowPlayingPanel = panel
@@ -112,6 +130,71 @@ private struct TrackTitle: View {
                 .lineLimit(1)
             }
         }
+    }
+}
+
+/// The book's title, which opens its page, over the chapter, or the author when there are no chapters.
+private struct BookTitle: View {
+    var book: Audiobook
+    var chapter: BookChapter?
+    var size: CGFloat
+    var alignment: HorizontalAlignment = .leading
+
+    @Environment(AppModel.self) private var app
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        VStack(alignment: alignment, spacing: size * 0.2) {
+            Button(book.title) {
+                app.openAudiobook(book.item)
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: size, weight: .bold))
+            .foregroundStyle(palette.text)
+            .lineLimit(1)
+            .help("Show Audiobook")
+
+            if let line = alignment == .center ? book.author : (book.chapters.count > 1 ? chapter?.title : book.author) {
+                Text(line)
+                    .font(.system(size: size * 0.85, weight: .medium))
+                    .foregroundStyle(alignment == .center ? palette.accent : palette.secondaryText)
+                    .lineLimit(1)
+            }
+        }
+    }
+}
+
+extension MusicPlayer {
+    /// What the seek bar spans: the song, or the chapter of a book.
+    var seekSpan: (position: Double, duration: Double) {
+        guard book != nil, let chapter = currentChapter else {
+            return (position, duration)
+        }
+        return (min(max(0, bookPosition - chapter.start), chapter.duration), chapter.duration)
+    }
+
+    func seekInSpan(to seconds: Double) {
+        guard book != nil, let chapter = currentChapter else {
+            seek(to: seconds)
+            return
+        }
+        seekBook(to: chapter.start + seconds)
+    }
+
+    /// The cover of the book, or of the song.
+    func coverURL(app: AppModel, width: Int) -> URL? {
+        if let book {
+            return app.coverURL(of: book, width: width)
+        }
+        return current.flatMap { app.client?.coverURL($0, width: width) }
+    }
+
+    /// The time left in the book at the current speed.
+    var bookTimeLeft: Double {
+        guard let book else {
+            return 0
+        }
+        return max(0, book.duration - bookPosition) / max(rate, 0.1)
     }
 }
 
@@ -172,25 +255,7 @@ struct MusicTransport: View {
             MusicControlButton(systemImage: "backward.fill", help: "Previous (⌘←)", size: size) {
                 music.previous()
             }
-            Button {
-                music.togglePlayPause()
-            } label: {
-                ZStack {
-                    Circle().fill(.white)
-                    if music.isBuffering, music.isPlaying {
-                        ProgressView().controlSize(.small).tint(.black)
-                    } else {
-                        Image(systemName: music.isPlaying ? "pause.fill" : "play.fill")
-                            .font(.system(size: size * 0.55, weight: .bold))
-                            .foregroundStyle(.black)
-                            .offset(x: music.isPlaying ? 0 : size * 0.04)
-                    }
-                }
-                .frame(width: size * 1.3, height: size * 1.3)
-                .contentShape(Circle())
-            }
-            .buttonStyle(.plain)
-            .help(music.isPlaying ? "Pause (Space)" : "Play (Space)")
+            PlayPauseButton(music: music, size: size)
             MusicControlButton(systemImage: "forward.fill", help: "Next (⌘→)", size: size) {
                 music.next()
             }
@@ -207,6 +272,67 @@ struct MusicTransport: View {
         case .all: "Repeat All"
         case .one: "Repeat One"
         }
+    }
+}
+
+/// Skip back, previous chapter, play/pause, next chapter, and skip forward.
+struct BookTransport: View {
+    var music: MusicPlayer
+    var size: CGFloat
+
+    @Environment(AppModel.self) private var app
+
+    var body: some View {
+        let back = app.settings.audiobookSkipBack
+        let forward = app.settings.audiobookSkipForward
+        HStack(spacing: size * 0.55) {
+            MusicControlButton(systemImage: AppSettings.skipSymbol(back, forward: false), help: "Back \(Int(back)) Seconds (⇧⌘←)", size: size) {
+                music.skip(by: -back)
+            }
+            MusicControlButton(systemImage: "backward.end.fill", help: "Previous Chapter (⌘←)", size: size) {
+                music.previousChapter()
+            }
+            PlayPauseButton(music: music, size: size)
+            MusicControlButton(systemImage: "forward.end.fill", help: "Next Chapter (⌘→)", size: size) {
+                music.nextChapter()
+            }
+            .disabled(!music.hasNext)
+            MusicControlButton(systemImage: AppSettings.skipSymbol(forward, forward: true), help: "Forward \(Int(forward)) Seconds (⇧⌘→)", size: size) {
+                music.skip(by: forward)
+            }
+        }
+    }
+}
+
+/// The big round play button, with a spinner while loading.
+private struct PlayPauseButton: View {
+    var music: MusicPlayer
+    var size: CGFloat
+
+    var body: some View {
+        Button {
+            music.togglePlayPause()
+        } label: {
+            ZStack {
+                Circle().fill(.white)
+                if music.isBuffering, music.isPlaying {
+                    // macOS draws the spinner for the color scheme and ignores the tint, so the app's dark
+                    // scheme would make it white on the white button.
+                    ProgressView()
+                        .controlSize(.small)
+                        .environment(\.colorScheme, .light)
+                } else {
+                    Image(systemName: music.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: size * 0.55, weight: .bold))
+                        .foregroundStyle(.black)
+                        .offset(x: music.isPlaying ? 0 : size * 0.04)
+                }
+            }
+            .frame(width: size * 1.3, height: size * 1.3)
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help(music.isPlaying ? "Pause (Space)" : "Play (Space)")
     }
 }
 
@@ -244,6 +370,7 @@ private struct TimeLabel: View {
 }
 
 /// A thin progress bar that grows on hover, shows the time under the pointer, and seeks on click or drag.
+/// In a book, it spans the current chapter.
 struct MusicSeekBar: View {
     var music: MusicPlayer
 
@@ -254,8 +381,9 @@ struct MusicSeekBar: View {
     var body: some View {
         GeometryReader { proxy in
             let width = proxy.size.width
-            let duration = max(music.duration, 0.001)
-            let progress = min(1, max(0, (dragPosition ?? music.position) / duration))
+            let span = music.seekSpan
+            let duration = max(span.duration, 0.001)
+            let progress = min(1, max(0, (dragPosition ?? span.position) / duration))
             let expanded = hoverX != nil || dragPosition != nil
 
             ZStack(alignment: .leading) {
@@ -298,7 +426,7 @@ struct MusicSeekBar: View {
                     }
                     .onEnded { value in
                         dragPosition = nil
-                        music.seek(to: Double(min(max(0, value.location.x), width) / width) * duration)
+                        music.seekInSpan(to: Double(min(max(0, value.location.x), width) / width) * duration)
                     }
             )
             .animation(.easeOut(duration: 0.12), value: expanded)
@@ -323,7 +451,7 @@ struct NowPlayingView: View {
                 // An overlay, so the square artwork filling the window doesn't make the view taller than the window.
                 Color.clear
                     .overlay {
-                        RemoteImage(url: app.client?.coverURL(item, width: 600)) { Color.clear }
+                        RemoteImage(url: music.coverURL(app: app, width: 600)) { Color.clear }
                             .scaleEffect(1.4)
                             .blur(radius: 90)
                             .opacity(0.6)
@@ -336,47 +464,17 @@ struct NowPlayingView: View {
 
                 HStack(alignment: .center, spacing: 48) {
                     VStack(spacing: 22) {
-                        CoverArt(url: app.client?.coverURL(item, width: 1000), cornerRadius: 16)
+                        CoverArt(url: music.coverURL(app: app, width: 1000), cornerRadius: 16, systemImage: music.book == nil ? "music.note" : "book.closed.fill")
                             .frame(maxWidth: 460, maxHeight: 460)
                             .shadow(color: .black.opacity(0.5), radius: 30, y: 16)
                             .scaleEffect(music.isPlaying ? 1 : 0.94)
                             .animation(.spring(response: 0.45, dampingFraction: 0.75), value: music.isPlaying)
 
-                        HStack(alignment: .center, spacing: 12) {
-                            Button {
-                                app.toggleFavorite(item)
-                            } label: {
-                                Image(systemName: item.isFavorite ? "heart.fill" : "heart")
-                            }
-                            .buttonStyle(CircleIconButtonStyle(size: 36, active: item.isFavorite))
-                            .help(item.isFavorite ? "Remove from Favorites" : "Add to Favorites")
-                            TrackTitle(item: item, size: 22, alignment: .center)
-                                .frame(maxWidth: .infinity)
-                            Menu {
-                                MusicMenuItems(item: item, app: app)
-                            } label: {
-                                Image(systemName: "ellipsis")
-                            }
-                            .menuStyle(.button)
-                            .buttonStyle(CircleIconButtonStyle(size: 36))
-                            .menuIndicator(.hidden)
-                            .fixedSize()
+                        if let book = music.book {
+                            bookControls(book, music: music)
+                        } else {
+                            songControls(item, music: music)
                         }
-
-                        VStack(spacing: 4) {
-                            MusicSeekBar(music: music)
-                            HStack {
-                                Text(Format.time(music.position))
-                                Spacer()
-                                Text("-" + Format.time(max(0, music.duration - music.position)))
-                            }
-                            .font(.system(size: 11, weight: .medium).monospacedDigit())
-                            .foregroundStyle(.white.opacity(0.55))
-                        }
-
-                        MusicTransport(music: music, size: 40)
-
-                        MusicVolume(music: music, width: 200)
 
                         if let stream = music.stream {
                             Text(stream.summary)
@@ -388,17 +486,24 @@ struct NowPlayingView: View {
                     .frame(minWidth: 340, maxWidth: 480)
 
                     VStack(spacing: 14) {
-                        Picker("", selection: $app.nowPlayingPanel) {
-                            Text("Queue").tag(NowPlayingPanel.queue)
-                            Text("Lyrics").tag(NowPlayingPanel.lyrics)
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                        .frame(width: 220)
+                        if let book = music.book {
+                            Text("Chapters")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(palette.secondaryText)
+                            ChaptersPanel(book: book, music: music)
+                        } else {
+                            Picker("", selection: $app.nowPlayingPanel) {
+                                Text("Queue").tag(NowPlayingPanel.queue)
+                                Text("Lyrics").tag(NowPlayingPanel.lyrics)
+                            }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+                            .frame(width: 220)
 
-                        switch app.nowPlayingPanel {
-                        case .queue: QueuePanel(music: music)
-                        case .lyrics: LyricsPanel(music: music)
+                            switch app.nowPlayingPanel {
+                            case .queue, .chapters: QueuePanel(music: music)
+                            case .lyrics: LyricsPanel(music: music)
+                            }
                         }
                     }
                     .padding(.top, 18)
@@ -427,6 +532,149 @@ struct NowPlayingView: View {
         .onChange(of: music.current == nil) { _, empty in
             if empty {
                 app.showsNowPlaying = false
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func songControls(_ item: BaseItem, music: MusicPlayer) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Button {
+                app.toggleFavorite(item)
+            } label: {
+                Image(systemName: item.isFavorite ? "heart.fill" : "heart")
+            }
+            .buttonStyle(CircleIconButtonStyle(size: 36, active: item.isFavorite))
+            .help(item.isFavorite ? "Remove from Favorites" : "Add to Favorites")
+            TrackTitle(item: item, size: 22, alignment: .center)
+                .frame(maxWidth: .infinity)
+            Menu {
+                MusicMenuItems(item: item, app: app)
+            } label: {
+                Image(systemName: "ellipsis")
+            }
+            .menuStyle(.button)
+            .buttonStyle(CircleIconButtonStyle(size: 36))
+            .menuIndicator(.hidden)
+            .fixedSize()
+        }
+
+        VStack(spacing: 4) {
+            MusicSeekBar(music: music)
+            HStack {
+                Text(Format.time(music.position))
+                Spacer()
+                Text("-" + Format.time(max(0, music.duration - music.position)))
+            }
+            .font(.system(size: 11, weight: .medium).monospacedDigit())
+            .foregroundStyle(.white.opacity(0.55))
+        }
+
+        MusicTransport(music: music, size: 40)
+
+        HStack(spacing: 14) {
+            MusicVolume(music: music, width: 200)
+            SleepTimerMenu(music: music, size: 32)
+        }
+    }
+
+    /// The book's title and author, the chapter with its own seek bar, the time left in the book, and the
+    /// controls for chapters, skipping, speed, and the sleep timer.
+    @ViewBuilder
+    private func bookControls(_ book: Audiobook, music: MusicPlayer) -> some View {
+        let span = music.seekSpan
+        HStack(alignment: .center, spacing: 12) {
+            Button {
+                app.toggleFavorite(book.item)
+            } label: {
+                Image(systemName: book.item.isFavorite ? "heart.fill" : "heart")
+            }
+            .buttonStyle(CircleIconButtonStyle(size: 36, active: book.item.isFavorite))
+            .help(book.item.isFavorite ? "Remove from Favorites" : "Add to Favorites")
+            BookTitle(book: book, chapter: music.currentChapter, size: 22, alignment: .center)
+                .frame(maxWidth: .infinity)
+            Menu {
+                AudiobookMenuItems(book: book, app: app)
+            } label: {
+                Image(systemName: "ellipsis")
+            }
+            .menuStyle(.button)
+            .buttonStyle(CircleIconButtonStyle(size: 36))
+            .menuIndicator(.hidden)
+            .fixedSize()
+        }
+
+        VStack(spacing: 6) {
+            if let chapter = music.currentChapter, book.chapters.count > 1 {
+                Text(chapter.title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.8))
+                    .lineLimit(1)
+            }
+            MusicSeekBar(music: music)
+            HStack {
+                Text(Format.time(span.position))
+                Spacer()
+                if let chapter = music.currentChapter, book.chapters.count > 1 {
+                    Text("Chapter \(chapter.id + 1) of \(book.chapters.count)")
+                    Spacer()
+                }
+                Text("-" + Format.time(max(0, span.duration - span.position)))
+            }
+            .font(.system(size: 11, weight: .medium).monospacedDigit())
+            .foregroundStyle(.white.opacity(0.55))
+        }
+
+        BookTransport(music: music, size: 40)
+
+        Text("\(Format.duration(music.bookTimeLeft)) left in the book")
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.6))
+
+        HStack(spacing: 14) {
+            BookSpeedMenu(music: music, size: 32)
+            SleepTimerMenu(music: music, size: 32)
+            MusicVolume(music: music, width: 150)
+        }
+    }
+}
+
+// MARK: - Chapters
+
+/// The chapters of the book that's playing, scrolled to the current one; clicking one plays it.
+private struct ChaptersPanel: View {
+    var book: Audiobook
+    var music: MusicPlayer
+
+    var body: some View {
+        let current = music.currentChapter
+        let position = music.bookPosition
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 2) {
+                    ForEach(book.chapters) { chapter in
+                        ChapterRow(chapter: chapter, isCurrent: chapter.id == current?.id, isPlaying: music.isPlaying,
+                                   isDone: chapter.end <= position, compact: true) {
+                            music.jump(to: chapter)
+                        }
+                        .id(chapter.id)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
+            }
+            .scrollIndicators(.never)
+            .onAppear {
+                if let current {
+                    proxy.scrollTo(current.id, anchor: .center)
+                }
+            }
+            .onChange(of: current?.id) { _, id in
+                if let id {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        proxy.scrollTo(id, anchor: .center)
+                    }
+                }
             }
         }
     }

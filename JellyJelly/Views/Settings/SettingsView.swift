@@ -8,6 +8,8 @@ struct SettingsView: View {
     @Environment(\.palette) private var palette
     @State private var confirmingRemoveAll = false
 
+    private static let skipIntervals: [Double] = [5, 10, 15, 20, 30, 45, 60, 90]
+
     var body: some View {
         @Bindable var settings = app.settings
         @Bindable var updater = Updater.shared
@@ -140,6 +142,30 @@ struct SettingsView: View {
                     }
                 }
 
+                SettingsGroup(title: "Audiobooks", systemImage: "books.vertical.fill") {
+                    SettingsRow("Skip back") {
+                        Picker("", selection: $settings.audiobookSkipBack) {
+                            ForEach(Self.skipIntervals, id: \.self) { Text("\(Int($0)) seconds").tag($0) }
+                        }
+                        .labelsHidden()
+                        .fixedSize()
+                    }
+                    SettingsRow("Skip forward") {
+                        Picker("", selection: $settings.audiobookSkipForward) {
+                            ForEach(Self.skipIntervals, id: \.self) { Text("\(Int($0)) seconds").tag($0) }
+                        }
+                        .labelsHidden()
+                        .fixedSize()
+                    }
+                    SettingsRow("Playback speed", detail: "Applies to every audiobook. Music always plays at its own speed.") {
+                        Picker("", selection: Binding(get: { app.music.rate }, set: { app.music.setRate($0) })) {
+                            ForEach(PlaybackSpeed.options, id: \.self) { Text(PlaybackSpeed.label($0)).tag($0) }
+                        }
+                        .labelsHidden()
+                        .fixedSize()
+                    }
+                }
+
                 SettingsGroup(title: "Buffering", systemImage: "arrow.down.circle.fill") {
                     SliderRow(title: "Buffer ahead", value: $settings.bufferAheadSeconds, range: 30...900, step: 30,
                               format: { seconds in
@@ -228,6 +254,16 @@ struct SettingsView: View {
                         ShortcutRow(keys: "⌘↑ / ⌘↓", action: "Volume")
                         ShortcutRow(keys: "⌘P", action: "Show or hide Now Playing")
                         ShortcutRow(keys: "⇧⌘L", action: "Lyrics")
+                    }
+                    Text("Audiobooks")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(palette.tertiaryText)
+                        .padding(.top, 8)
+                    VStack(alignment: .leading, spacing: 6) {
+                        ShortcutRow(keys: "Space", action: "Play / pause")
+                        ShortcutRow(keys: "⌘← / ⌘→", action: "Previous / next chapter")
+                        ShortcutRow(keys: "⇧⌘← / ⇧⌘→", action: "Skip back / forward")
+                        ShortcutRow(keys: "⌘P", action: "Show or hide Now Playing")
                     }
                 }
 

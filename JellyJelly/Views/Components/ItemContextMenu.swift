@@ -20,6 +20,8 @@ private struct ItemMenuItems: View {
     var body: some View {
         if item.isMusic {
             MusicMenuItems(item: item, app: app)
+        } else if item.isAudiobook {
+            AudiobookMenuItems(book: Audiobook(item: item, parts: [item]), app: app)
         } else {
             videoItems
         }

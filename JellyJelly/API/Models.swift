@@ -311,6 +311,7 @@ struct UserDataUpdate: Codable, Sendable {
     var playbackPositionTicks: Int64?
     var played: Bool?
     var isFavorite: Bool?
+    var lastPlayedDate: Date?
 }
 
 // MARK: - Helpers
@@ -330,6 +331,7 @@ enum ItemType {
     static let musicAlbum = "MusicAlbum"
     static let musicArtist = "MusicArtist"
     static let playlist = "Playlist"
+    static let audioBook = "AudioBook"
 }
 
 extension Int64 {
@@ -350,6 +352,10 @@ extension BaseItem {
     var isAlbum: Bool { type == ItemType.musicAlbum }
     var isArtist: Bool { type == ItemType.musicArtist }
     var isPlaylist: Bool { type == ItemType.playlist }
+    /// A file in a library of the type "Books": a whole book, or one part of a book made of several files.
+    var isAudiobook: Bool { type == ItemType.audioBook }
+    /// Songs and audiobook files, which the audio player plays.
+    var isAudioFile: Bool { isAudio || isAudiobook }
     /// Songs, albums, artists, and playlists, which the music player plays instead of the video player.
     var isMusic: Bool { isAudio || isAlbum || isArtist || (isPlaylist && mediaType != "Video") }
     var isPlayable: Bool {
@@ -358,8 +364,8 @@ extension BaseItem {
         default: return mediaType == "Video"
         }
     }
-    /// Videos and songs, whose files can be downloaded one by one.
-    var isDownloadable: Bool { isPlayable || isAudio }
+    /// Videos, songs, and audiobook files, whose files can be downloaded one by one.
+    var isDownloadable: Bool { isPlayable || isAudioFile }
     var isContainer: Bool {
         isSeries || isSeason || type == ItemType.boxSet || type == ItemType.collectionFolder
             || type == ItemType.userView || type == ItemType.folder

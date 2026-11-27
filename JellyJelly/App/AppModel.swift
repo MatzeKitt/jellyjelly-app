@@ -10,6 +10,8 @@ enum SidebarSection: Hashable {
     case downloads
     case library(String)
     case music(MusicSection)
+    /// A library of the type "Books", showing its audiobooks.
+    case audiobooks(String)
     case settings
 }
 
@@ -41,10 +43,11 @@ enum MusicSection: String, CaseIterable, Hashable {
     }
 }
 
-/// Which side panel the full Now Playing view shows.
+/// Which side panel the full Now Playing view shows. Audiobooks show their chapters instead.
 enum NowPlayingPanel: Hashable {
     case queue
     case lyrics
+    case chapters
 }
 
 /// Creating a playlist, optionally with songs in it, or renaming one.
@@ -63,6 +66,8 @@ enum PlaylistSheet: Identifiable {
 enum Route: Hashable {
     case item(BaseItem)
     case library(BaseItem)
+    /// An audiobook, given by one of its files or by the folder of a book made of several files.
+    case audiobook(BaseItem)
 }
 
 /// A user-data change, broadcast so every list can patch its copy of the item.
@@ -83,9 +88,11 @@ struct DownloadRequest: Identifiable {
     let id = UUID()
     var container: BaseItem
     var items: [BaseItem]
+    /// The files of an audiobook, which only make sense all together.
+    var isAudiobook = false
 
-    /// Songs have no watched state, so an album or playlist always downloads in full.
-    var unwatched: [BaseItem] { container.isMusic ? items : items.filter { !$0.isPlayed } }
+    /// Songs have no watched state, so an album or playlist always downloads in full; so does an audiobook.
+    var unwatched: [BaseItem] { container.isMusic || isAudiobook ? items : items.filter { !$0.isPlayed } }
 
     static func size(of items: [BaseItem]) -> Int64 {
         items.reduce(0) { $0 + ($1.primaryMediaSource?.size ?? 0) }
@@ -120,6 +127,8 @@ final class AppModel {
     var libraries: [BaseItem] = []
     var channels: [BaseItem] = []
     var musicLibraries: [BaseItem] = []
+    /// Libraries of the type "Books", which hold audiobooks.
+    var audiobookLibraries: [BaseItem] = []
     /// The user's music playlists, for "Add to Playlist" menus.
     var musicPlaylists: [BaseItem] = []
 
@@ -230,6 +239,7 @@ final class AppModel {
         libraries = []
         channels = []
         musicLibraries = []
+        audiobookLibraries = []
         musicPlaylists = []
         section = .home
         path = []
@@ -262,10 +272,11 @@ final class AppModel {
         }
         do {
             let views = try await client.userViews()
-            // Music has its own sidebar section instead of a library page.
+            // Music has its own sidebar section, and books their own page, instead of a library page.
             let unsupported: Set<String> = ["music", "books", "photos", "livetv", "playlists"]
             libraries = views.filter { !unsupported.contains($0.collectionType ?? "") }
             musicLibraries = views.filter { $0.collectionType == "music" }
+            audiobookLibraries = views.filter { $0.collectionType == "books" }
             await loadChannels()
             if hasMusic {
                 await loadPlaylists()
@@ -351,6 +362,10 @@ final class AppModel {
             section = .library(item.id)
             return
         }
+        if item.isAudiobook {
+            openAudiobook(item)
+            return
+        }
         // A song opens on its album.
         if item.isAudio, let albumId = item.albumId {
             path.append(.item(BaseItem(id: albumId, name: item.album, type: ItemType.musicAlbum)))
@@ -425,9 +440,15 @@ final class AppModel {
     }
 
     func broadcast(_ itemId: String, _ data: UserItemData?) {
+        announce(itemId, data)
+        downloads.apply(itemId, data)
+    }
+
+    /// Lets lists and the audio player patch their copies, without touching the downloads, e.g. for progress
+    /// made offline that the downloads already recorded.
+    func announce(_ itemId: String, _ data: UserItemData?) {
         changeSequence += 1
         lastChange = ItemChange(itemId: itemId, userData: data, sequence: changeSequence)
-        downloads.apply(itemId, data)
         music.apply(itemId, data)
     }
 
@@ -435,6 +456,10 @@ final class AppModel {
 
     /// Downloads a video or song right away; for series, seasons, channels, albums, and playlists, asks first.
     func download(_ item: BaseItem) {
+        if item.isAudiobook {
+            downloadAudiobook(item)
+            return
+        }
         if item.isDownloadable {
             downloads.enqueue([item])
             return
@@ -492,6 +517,10 @@ final class AppModel {
     func play(_ item: BaseItem, queue: [BaseItem] = [], mode: StartMode = .automatic) {
         if item.isMusic {
             playMusic(item)
+            return
+        }
+        if item.isAudiobook {
+            playAudiobook(item, startOver: mode == .beginning)
             return
         }
         Task {

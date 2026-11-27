@@ -7,7 +7,8 @@ import SwiftUI
 /// Post a distributed notification named `media.kitt.JellyJelly.debug` whose object is a
 /// command string, e.g. `snapshot /tmp/shot.png`, `section subscriptions`, `open <itemId>`,
 /// `play <itemId>`, `player pause|resume|stats|next|close|pip|seek <seconds>`, `download <itemId>`,
-/// `remove-download <itemId>`, `music play|shuffle|next|<itemId>…`, `state /tmp/state.json`.
+/// `remove-download <itemId>`, `music play|shuffle|next|<itemId>…`, `book open|play|start-over|chapter|skip|seek|rate|sleep|finished…`,
+/// `audiobooks <libraryId> /tmp/books.json`, `state /tmp/state.json`.
 @MainActor
 enum DebugHooks {
     static func install() {
@@ -42,6 +43,8 @@ enum DebugHooks {
                     app.section = .library(String(argument.dropFirst(8)))
                 } else if argument.hasPrefix("music:"), let section = MusicSection(rawValue: String(argument.dropFirst(6))) {
                     app.section = .music(section)
+                } else if argument.hasPrefix("audiobooks:") {
+                    app.section = .audiobooks(String(argument.dropFirst(11)))
                 }
             }
         case "theme":
@@ -104,6 +107,13 @@ enum DebugHooks {
             }
         case "music":
             music(argument)
+        case "book":
+            book(argument)
+        case "audiobooks":
+            let parts = argument.split(separator: " ").map(String.init)
+            if parts.count == 2 {
+                writeAudiobooks(libraryId: parts[0], to: parts[1])
+            }
         case "state":
             writeState(to: argument)
         case "quit":
@@ -151,6 +161,81 @@ enum DebugHooks {
         }
     }
 
+    /// `book open|play|start-over|from <itemId>` (a file of the book, or its folder), `book chapter <index>`,
+    /// `book next|previous|toggle|stop`, `book skip <seconds>`, `book seek <bookSeconds>`, `book rate <rate>`,
+    /// `book sleep <minutes>|chapter|off`, `book finished|unfinished`.
+    private static func book(_ argument: String) {
+        let app = AppModel.shared
+        let music = app.music
+        let parts = argument.split(separator: " ").map(String.init)
+        let value = parts.count > 1 ? parts[1] : ""
+        switch parts.first {
+        case "open", "play", "start-over", "from":
+            Task {
+                guard let seed = (try? await app.client?.item(value)) ?? app.downloads.records[value]?.item else {
+                    return
+                }
+                switch parts.first {
+                case "open": app.openAudiobook(seed)
+                case "from": app.playAudiobook(from: seed)
+                default: app.playAudiobook(seed, startOver: parts.first == "start-over")
+                }
+            }
+        case "chapter":
+            if let book = music.book, let index = Int(value), book.chapters.indices.contains(index) {
+                music.jump(to: book.chapters[index])
+            }
+        case "next": music.next()
+        case "previous": music.previous()
+        case "toggle": music.togglePlayPause()
+        case "stop": music.stop()
+        case "skip": music.skip(by: Double(value) ?? 0)
+        case "seek": music.seekBook(to: Double(value) ?? 0)
+        case "rate": music.setRate(Double(value) ?? 1)
+        case "sleep":
+            switch value {
+            case "chapter": music.setSleepTimer(.endOfChapter)
+            case "off": music.setSleepTimer(nil)
+            default: music.setSleepTimer(.at(.now.addingTimeInterval((Double(value) ?? 0) * 60)))
+            }
+        case "finished", "unfinished":
+            if let book = music.book {
+                app.setFinished(book, parts.first == "finished")
+            }
+        case "chapters":
+            app.nowPlayingPanel = .chapters
+            app.showsNowPlaying = true
+        default: break
+        }
+    }
+
+    private static func writeAudiobooks(libraryId: String, to path: String) {
+        let app = AppModel.shared
+        guard let library = app.audiobookLibraries.first(where: { $0.id == libraryId }) else {
+            return
+        }
+        Task {
+            let books = (try? await app.audiobooks(in: library)) ?? []
+            let rows: [[String: Any]] = books.map { book in
+                [
+                    "id": book.id,
+                    "title": book.title,
+                    "author": book.author as Any,
+                    "multiPart": book.isMultiPart,
+                    "parts": book.parts.map(\.id),
+                    "duration": book.duration,
+                    "progress": book.progress as Any,
+                    "finished": book.isFinished,
+                    "started": book.isStarted,
+                    "lastPlayed": book.lastPlayedDate.map { "\($0)" } as Any,
+                ]
+            }
+            if let data = try? JSONSerialization.data(withJSONObject: rows, options: [.prettyPrinted, .sortedKeys]) {
+                try? data.write(to: URL(fileURLWithPath: path))
+            }
+        }
+    }
+
     private static func snapshot(to path: String) {
         guard let window = NSApp.windows.first(where: { $0.isVisible && $0.contentView != nil }),
               let view = window.contentView,
@@ -187,6 +272,7 @@ enum DebugHooks {
             "libraries": app.libraries.map(\.displayName),
             "channels": app.channels.map(\.displayName),
             "musicLibraries": app.musicLibraries.map(\.displayName),
+            "audiobookLibraries": app.audiobookLibraries.map { "\($0.id): \($0.displayName)" },
             "playlists": app.musicPlaylists.map { "\($0.id): \($0.displayName)" },
             "resumePrompt": app.resumePrompt?.item.id as Any,
             "error": app.errorMessage as Any,
@@ -249,7 +335,24 @@ enum DebugHooks {
                 "stream": music.stream?.summary as Any,
                 "lyrics": lyrics,
                 "nowPlayingShown": app.showsNowPlaying,
+                "sleepTimer": music.sleepTimer.map { "\($0)" } as Any,
             ]
+            if let book = music.book {
+                state["book"] = [
+                    "id": book.id,
+                    "title": book.title,
+                    "author": book.author as Any,
+                    "parts": book.parts.count,
+                    "part": music.index,
+                    "chapters": book.chapters.map { "\($0.id): \($0.title) [\(Int($0.start))–\(Int($0.end))] part \($0.part)" },
+                    "chapter": music.currentChapter?.id as Any,
+                    "bookPosition": music.bookPosition,
+                    "duration": book.duration,
+                    "rate": music.rate,
+                    "partsPlayed": book.parts.map(\.isPlayed),
+                    "partPositions": book.parts.map(\.resumePosition),
+                ]
+            }
         }
         if let data = try? JSONSerialization.data(withJSONObject: state, options: [.prettyPrinted, .sortedKeys]) {
             try? data.write(to: URL(fileURLWithPath: path))

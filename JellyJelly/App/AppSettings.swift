@@ -191,6 +191,11 @@ final class AppSettings {
     var musicQuality: MusicQuality { didSet { defaults.set(musicQuality.rawValue, forKey: "musicQuality") } }
     /// Music keeps its own volume, since songs tend to be mastered louder than videos.
     var musicVolume: Double { didSet { defaults.set(musicVolume, forKey: "musicVolume") } }
+    /// The playback speed of audiobooks, e.g. 1.25.
+    var audiobookRate: Double { didSet { defaults.set(audiobookRate, forKey: "audiobookRate") } }
+    /// Seconds the skip buttons of audiobooks jump back and forward.
+    var audiobookSkipBack: Double { didSet { defaults.set(audiobookSkipBack, forKey: "audiobookSkipBack") } }
+    var audiobookSkipForward: Double { didSet { defaults.set(audiobookSkipForward, forKey: "audiobookSkipForward") } }
     var sidebarCollapsed: Bool { didSet { defaults.set(sidebarCollapsed, forKey: "sidebarCollapsed") } }
 
     private init() {
@@ -210,6 +215,9 @@ final class AppSettings {
             "subtitleScale": 1.0,
             "volume": 100.0,
             "musicVolume": 80.0,
+            "audiobookRate": 1.0,
+            "audiobookSkipBack": 15.0,
+            "audiobookSkipForward": 30.0,
             "sidebarCollapsed": false,
         ])
         theme = ThemeScheme(rawValue: defaults.string(forKey: "theme") ?? "") ?? .violetSignal
@@ -242,6 +250,9 @@ final class AppSettings {
         volume = defaults.double(forKey: "volume")
         musicQuality = MusicQuality(rawValue: defaults.string(forKey: "musicQuality") ?? "") ?? .original
         musicVolume = defaults.double(forKey: "musicVolume")
+        audiobookRate = defaults.double(forKey: "audiobookRate")
+        audiobookSkipBack = defaults.double(forKey: "audiobookSkipBack")
+        audiobookSkipForward = defaults.double(forKey: "audiobookSkipForward")
         sidebarCollapsed = defaults.bool(forKey: "sidebarCollapsed")
     }
 }
