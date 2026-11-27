@@ -136,7 +136,7 @@ struct Sidebar: View {
                 .font(.system(size: 10, weight: .bold))
                 .tracking(1.2)
                 .foregroundStyle(palette.tertiaryText)
-                .padding(.horizontal, 26)
+                .padding(.horizontal, 16)
                 .padding(.top, 22)
                 .padding(.bottom, 6)
         }
