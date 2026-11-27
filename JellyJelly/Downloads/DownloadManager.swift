@@ -297,14 +297,20 @@ final class DownloadManager {
         save(record)
     }
 
-    /// Remembers where offline playback stopped, using the server's watched thresholds.
-    func recordPlayback(_ itemId: String, position: Double, duration: Double) {
+    /// Remembers where offline playback stopped, using the server's watched thresholds. Audiobooks keep
+    /// the exact position, since a few percent of a book are long enough to matter.
+    ///
+    /// - Parameter finished: Whether playback reached the end of the file.
+    func recordPlayback(_ itemId: String, position: Double, duration: Double, finished: Bool = false) {
         guard var record = records[itemId], duration > 0 else {
             return
         }
         var data = record.item.userData ?? UserItemData()
-        let fraction = position / duration
-        if fraction >= 0.9 {
+        let fraction = min(position / duration, 1)
+        if record.item.isAudiobook, !finished {
+            data.playbackPositionTicks = position.ticks
+            data.playedPercentage = fraction * 100
+        } else if finished || fraction >= 0.9 {
             data.played = true
             data.playCount = (data.playCount ?? 0) + 1
             data.playbackPositionTicks = 0
@@ -341,7 +347,8 @@ final class DownloadManager {
         }
         for record in records.values where record.needsSync == true {
             let data = record.item.userData
-            let update = UserDataUpdate(playbackPositionTicks: data?.playbackPositionTicks ?? 0, played: data?.played == true ? true : nil)
+            let update = UserDataUpdate(playbackPositionTicks: data?.playbackPositionTicks ?? 0, played: data?.played == true ? true : nil,
+                                        lastPlayedDate: data?.lastPlayedDate)
             guard (try? await client.updateUserData(record.id, update)) != nil else {
                 // Still offline; try again next time.
                 return
@@ -417,8 +424,8 @@ final class DownloadManager {
                 record.mediaSourceId = source.id
                 record.fileName = "media." + Self.fileExtension(source)
                 record.expectedBytes = source.size
-                // Songs have neither segments nor subtitles.
-                if !item.isAudio {
+                // Songs and audiobooks have neither segments nor subtitles.
+                if !item.isAudioFile {
                     record.segments = (try? await client.mediaSegments(itemId: itemId)) ?? []
                     record.subtitles = await downloadSubtitles(item: item, source: source, client: client, into: directory)
                 }
@@ -575,7 +582,7 @@ final class DownloadManager {
     }
 
     private func downloadArtwork(item: BaseItem, client: JellyfinClient, into directory: URL) async {
-        let images: [(String, URL?)] = item.isAudio ? [("cover", client.coverURL(item, width: 600))] : [
+        let images: [(String, URL?)] = item.isAudioFile ? [("cover", client.coverURL(item, width: 600))] : [
             ("thumb", client.thumbURL(item, width: 720)),
             ("poster", client.posterURL(item, width: 400)),
             ("avatar", client.avatarURL(item, width: 120)),

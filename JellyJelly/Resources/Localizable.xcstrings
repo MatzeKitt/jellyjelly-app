@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "·" : {
+      "shouldTranslate" : false
+    },
     "“%@” can't be played. %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -194,6 +197,37 @@
         }
       }
     },
+    "%@ left · %@%%" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ left · %2$@%%"
+          }
+        }
+      }
+    },
+    "%@ left · %lld%%" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "noch %1$@ · %2$lld %%"
+          }
+        }
+      }
+    },
+    "%@ left in the book" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "noch %@ im Buch"
+          }
+        }
+      }
+    },
     "%@ Mbps" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -239,6 +273,9 @@
       }
     },
     "%@ Seasons" : {
+
+    },
+    "%@ seconds" : {
 
     },
     "%@ unwatched" : {
@@ -315,6 +352,47 @@
         }
       }
     },
+    "%lld audiobooks" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Hörbuch"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Hörbücher"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld audiobook"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld audiobooks"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld ch" : {
       "comment" : "Number of audio channels",
       "extractionState" : "stale",
@@ -361,6 +439,47 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld channels"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld chapters" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Kapitel"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Kapitel"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld chapter"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld chapters"
                 }
               }
             }
@@ -416,6 +535,88 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld heruntergeladen"
+          }
+        }
+      }
+    },
+    "%lld files" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Datei"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Dateien"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld file"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld files"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld files of this audiobook aren't downloaded yet." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Datei dieses Hörbuchs ist noch nicht heruntergeladen."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Dateien dieses Hörbuchs sind noch nicht heruntergeladen."
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld file of this audiobook isn't downloaded yet."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld files of this audiobook aren't downloaded yet."
+                }
+              }
+            }
           }
         }
       }
@@ -614,6 +815,47 @@
         }
       }
     },
+    "%lld Minutes" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Minute"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Minuten"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Minute"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Minutes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld months ago" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -734,6 +976,47 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld Seasons"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld seconds" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Sekunde"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Sekunden"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld second"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld seconds"
                 }
               }
             }
@@ -1426,6 +1709,17 @@
         }
       }
     },
+    "All Audiobooks" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Hörbücher"
+          }
+        }
+      }
+    },
     "All caught up" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1510,6 +1804,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enthalten auf"
+          }
+        }
+      }
+    },
+    "Applies to every audiobook. Music always plays at its own speed." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gilt für alle Hörbücher. Musik läuft immer in ihrer normalen Geschwindigkeit."
           }
         }
       }
@@ -1601,6 +1906,49 @@
         }
       }
     },
+    "Audiobook" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hörbuch"
+          }
+        }
+      }
+    },
+    "Audiobook files in this library show up here. A folder of files sharing an album tag plays as one book. E-books aren't supported." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hörbuchdateien aus dieser Bibliothek erscheinen hier. Ein Ordner mit Dateien, die denselben Album-Tag haben, wird als ein Buch abgespielt. E-Books werden nicht unterstützt."
+          }
+        }
+      }
+    },
+    "Audiobooks" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hörbücher"
+          }
+        }
+      }
+    },
+    "Author" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autor"
+          }
+        }
+      }
+    },
     "Auto-detected by name (any library with “YouTube” in its name). Pick libraries to override." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1685,6 +2033,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zurück (⌘[)"
+          }
+        }
+      }
+    },
+    "Back %lld Seconds" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Sekunden zurück"
+          }
+        }
+      }
+    },
+    "Back %lld Seconds (⇧⌘←)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Sekunden zurück (⇧⌘←)"
           }
         }
       }
@@ -1898,8 +2268,50 @@
         }
       }
     },
-    "Chapters" : {
+    "Chapter %@ of %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Chapter %1$@ of %2$@"
+          }
+        }
+      }
+    },
+    "Chapter %lld" : {
       "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kapitel %lld"
+          }
+        }
+      }
+    },
+    "Chapter %lld of %lld" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kapitel %1$lld von %2$lld"
+          }
+        }
+      }
+    },
+    "Chapter End" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kapitelende"
+          }
+        }
+      }
+    },
+    "Chapters" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2139,6 +2551,17 @@
         }
       }
     },
+    "Continue Listening" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weiterhören"
+          }
+        }
+      }
+    },
     "Continue Watching" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2168,6 +2591,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unter %1$@ war kein Jellyfin-Server erreichbar. %2$@"
+          }
+        }
+      }
+    },
+    "Couldn't load the audiobook" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Hörbuch konnte nicht geladen werden"
+          }
+        }
+      }
+    },
+    "Couldn't load the audiobooks" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Hörbücher konnten nicht geladen werden"
           }
         }
       }
@@ -2511,6 +2956,17 @@
         }
       }
     },
+    "Download Audiobook" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hörbuch herunterladen"
+          }
+        }
+      }
+    },
     "Download failed" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2643,6 +3099,17 @@
         }
       }
     },
+    "Downloaded %lld of %lld files (click to cancel)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld von %2$lld Dateien heruntergeladen (zum Abbrechen klicken)"
+          }
+        }
+      }
+    },
     "Downloaded file (offline)" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2750,6 +3217,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Glut"
+          }
+        }
+      }
+    },
+    "End of Chapter" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ende des Kapitels"
+          }
+        }
+      }
+    },
+    "End of Song" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ende des Titels"
           }
         }
       }
@@ -2972,6 +3461,17 @@
         }
       }
     },
+    "Finished" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beendet"
+          }
+        }
+      }
+    },
     "Forced" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2979,6 +3479,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Erzwungen"
+          }
+        }
+      }
+    },
+    "Forward %lld Seconds" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Sekunden vor"
+          }
+        }
+      }
+    },
+    "Forward %lld Seconds (⇧⌘→)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Sekunden vor (⇧⌘→)"
           }
         }
       }
@@ -3122,6 +3644,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hardware-Dekodierung (mpv)"
+          }
+        }
+      }
+    },
+    "Hide Finished" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beendete ausblenden"
           }
         }
       }
@@ -3402,6 +3935,17 @@
         }
       }
     },
+    "Listen Again" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut anhören"
+          }
+        }
+      }
+    },
     "Listen Now" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3496,6 +4040,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Alle als gesehen markieren"
+          }
+        }
+      }
+    },
+    "Mark as Finished" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als beendet markieren"
+          }
+        }
+      }
+    },
+    "Mark as Not Started" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als nicht begonnen markieren"
           }
         }
       }
@@ -3915,6 +4481,28 @@
         }
       }
     },
+    "Next Chapter" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nächstes Kapitel"
+          }
+        }
+      }
+    },
+    "Next Chapter (⌘→)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nächstes Kapitel (⌘→)"
+          }
+        }
+      }
+    },
     "Next Song (⌘→)" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3977,6 +4565,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keine Audiospuren"
+          }
+        }
+      }
+    },
+    "No audiobooks yet" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine Hörbücher"
           }
         }
       }
@@ -4442,6 +5041,17 @@
         }
       }
     },
+    "Play from Here" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ab hier abspielen"
+          }
+        }
+      }
+    },
     "Play method" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4525,6 +5135,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wiedergabe fehlgeschlagen."
+          }
+        }
+      }
+    },
+    "Playback speed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiedergabegeschwindigkeit"
+          }
+        }
+      }
+    },
+    "Playback Speed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiedergabegeschwindigkeit"
           }
         }
       }
@@ -4704,6 +5336,17 @@
         }
       }
     },
+    "Previous / next chapter" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorheriges / nächstes Kapitel"
+          }
+        }
+      }
+    },
     "Previous / next song" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4711,6 +5354,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vorheriger / nächster Titel"
+          }
+        }
+      }
+    },
+    "Previous Chapter" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorheriges Kapitel"
+          }
+        }
+      }
+    },
+    "Previous Chapter (⌘←)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorheriges Kapitel (⌘←)"
           }
         }
       }
@@ -5144,13 +5809,13 @@
         }
       }
     },
-    "Right-click a movie, episode, video, or song and choose “Download” to use it offline. Seasons, series, channels, albums, and playlists can be downloaded in one go." : {
+    "Right-click a movie, episode, video, song, or audiobook and choose “Download” to use it offline. Seasons, series, channels, albums, and playlists can be downloaded in one go." : {
       "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Klicke mit der rechten Maustaste auf einen Film, eine Folge, ein Video oder einen Titel und wähle „Herunterladen“, um es offline zu nutzen. Staffeln, Serien, Kanäle, Alben und Playlists lassen sich in einem Rutsch herunterladen."
+            "value" : "Klicke mit der rechten Maustaste auf einen Film, eine Folge, ein Video, einen Titel oder ein Hörbuch und wähle „Herunterladen“, um es offline zu nutzen. Staffeln, Serien, Kanäle, Alben und Playlists lassen sich in einem Rutsch herunterladen."
           }
         }
       }
@@ -5339,6 +6004,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Alle %lld Videos anzeigen"
+          }
+        }
+      }
+    },
+    "Show Audiobook" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hörbuch anzeigen"
           }
         }
       }
@@ -5605,6 +6281,28 @@
         }
       }
     },
+    "Skip back" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurückspringen"
+          }
+        }
+      }
+    },
+    "Skip back / forward" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurück- / vorspringen"
+          }
+        }
+      }
+    },
     "Skip Credits" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5612,6 +6310,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abspann überspringen"
+          }
+        }
+      }
+    },
+    "Skip forward" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorspringen"
           }
         }
       }
@@ -5671,6 +6380,17 @@
         }
       }
     },
+    "Sleep Timer" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schlaftimer"
+          }
+        }
+      }
+    },
     "Slower / faster / normal speed" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5700,6 +6420,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Etwas ist schiefgelaufen"
+          }
+        }
+      }
+    },
+    "Song End" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titelende"
           }
         }
       }
@@ -5858,6 +6589,17 @@
         }
       }
     },
+    "Stop Audiobook" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hörbuch stoppen"
+          }
+        }
+      }
+    },
     "Stream" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5964,6 +6706,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zielpuffer"
+          }
+        }
+      }
+    },
+    "The audiobook will no longer be available offline." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Hörbuch ist dann nicht mehr offline verfügbar."
           }
         }
       }
@@ -6105,6 +6857,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "diesem Künstler"
+          }
+        }
+      }
+    },
+    "This audiobook has no files to play." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Hörbuch hat keine Dateien zum Abspielen."
           }
         }
       }

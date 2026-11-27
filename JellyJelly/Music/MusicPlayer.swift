@@ -3,7 +3,11 @@ import AppKit
 import MediaPlayer
 import Observation
 
-/// Plays songs from a queue. The next song is loaded into the player ahead of time, so it starts without a gap.
+/// Plays songs from a queue, or the files of an audiobook. The next song or file is loaded into the player ahead
+/// of time, so it starts without a gap.
+///
+/// While a book plays, its files form the queue, positions count from the start of the book, previous and
+/// next move between chapters, and the playback speed of audiobooks applies.
 @MainActor
 @Observable
 final class MusicPlayer {
@@ -17,6 +21,13 @@ final class MusicPlayer {
         case off
         case all
         case one
+    }
+
+    enum SleepTimer: Equatable {
+        /// Pauses at a time, fading out over the last seconds.
+        case at(Date)
+        /// Pauses at the end of the chapter, or of the song.
+        case endOfChapter
     }
 
     enum LyricsState: Equatable {
@@ -88,6 +99,11 @@ final class MusicPlayer {
     private(set) var isBuffering = false
     private(set) var stream: StreamInfo?
     private(set) var lyrics = LyricsState.none
+    /// The audiobook whose files are in the queue, if one is playing.
+    private(set) var book: Audiobook?
+    /// The playback speed of audiobooks. Music always plays at its own speed.
+    private(set) var rate: Double
+    private(set) var sleepTimer: SleepTimer?
     var volume: Double {
         didSet {
             player.volume = Float(volume / 100)
@@ -99,7 +115,17 @@ final class MusicPlayer {
     var currentEntry: Entry? { entries.indices.contains(index) ? entries[index] : nil }
     var history: [Entry] { Array(entries.prefix(index)) }
     var upcoming: [Entry] { index + 1 < entries.count ? Array(entries[(index + 1)...]) : [] }
-    var hasNext: Bool { nextIndex != nil }
+    /// Whether there is a next song, or a next chapter in a book.
+    var hasNext: Bool {
+        if let book {
+            return currentChapter.map { $0.id + 1 < book.chapters.count } ?? false
+        }
+        return nextIndex != nil
+    }
+
+    /// The position in the whole book, or in the song.
+    var bookPosition: Double { (book?.offset(of: index) ?? 0) + position }
+    var currentChapter: BookChapter? { book?.chapter(at: bookPosition) }
 
     private var nextIndex: Int? {
         if index + 1 < entries.count {
@@ -143,10 +169,17 @@ final class MusicPlayer {
     @ObservationIgnored private var remoteTargets: [(command: MPRemoteCommand, target: Any)] = []
     @ObservationIgnored private var artwork: (itemId: String, artwork: MPMediaItemArtwork)?
     @ObservationIgnored private var tickTask: Task<Void, Never>?
+    @ObservationIgnored private var sleepTask: Task<Void, Never>?
+    /// Fires at the end of the chapter while the sleep timer waits for it.
+    @ObservationIgnored private var sleepBoundary: Any?
+    /// Whether the player pauses at the end of the file instead of moving on, for the sleep timer.
+    @ObservationIgnored private var stopsAtItemEnd = false
+    @ObservationIgnored private var lastChapterId: Int?
 
     init(app: AppModel) {
         self.app = app
         volume = app.settings.musicVolume
+        rate = app.settings.audiobookRate
         player.volume = Float(volume / 100)
         observePlayer()
         installKeyMonitor()
@@ -170,6 +203,9 @@ final class MusicPlayer {
         guard !songs.isEmpty else {
             return
         }
+        // The book's file reports its position while it's still a book's.
+        finishReport()
+        leaveBook()
         var list = songs.map { Entry(item: $0) }
         var startIndex = min(max(start ?? 0, 0), list.count - 1)
         let shuffling = shuffle ?? isShuffled
@@ -187,13 +223,13 @@ final class MusicPlayer {
         load(at: startIndex, autoplay: true)
     }
 
-    /// Queues songs right after the current one.
+    /// Queues songs right after the current one. Songs don't join a book, but replace it.
     func playNext(_ items: [BaseItem]) {
         let songs = items.filter(\.isAudio).map { Entry(item: $0) }
         guard !songs.isEmpty else {
             return
         }
-        guard current != nil else {
+        guard current != nil, book == nil else {
             play(songs.map(\.item), shuffle: false)
             return
         }
@@ -210,13 +246,39 @@ final class MusicPlayer {
         guard !songs.isEmpty else {
             return
         }
-        guard current != nil else {
+        guard current != nil, book == nil else {
             play(songs.map(\.item), shuffle: false)
             return
         }
         entries += songs
         unshuffled? += songs
         queueChanged()
+    }
+
+    /// Replaces the queue with the files of a book and plays it from a position in one of them.
+    func playBook(_ book: Audiobook, part: Int, at position: Double) {
+        guard !book.parts.isEmpty else {
+            return
+        }
+        finishReport()
+        self.book = book
+        unshuffled = nil
+        isShuffled = false
+        applyRepeatMode(.off)
+        entries = book.parts.map { Entry(item: $0) }
+        failures = 0
+        lastChapterId = nil
+        applyRate()
+        load(at: min(max(part, 0), entries.count - 1), startAt: position, autoplay: true)
+    }
+
+    private func leaveBook() {
+        guard book != nil else {
+            return
+        }
+        book = nil
+        lastChapterId = nil
+        applyRate()
     }
 
     // MARK: - Controls
@@ -261,7 +323,12 @@ final class MusicPlayer {
         saveQueue()
     }
 
+    /// The next song, or the next chapter of a book.
     func next() {
+        if book != nil {
+            nextChapter()
+            return
+        }
         guard let next = nextIndex else {
             return
         }
@@ -269,7 +336,12 @@ final class MusicPlayer {
     }
 
     /// Restarts the song after its first seconds, like a CD player; otherwise goes back a song.
+    /// In a book, the same for chapters.
     func previous() {
+        if book != nil {
+            previousChapter()
+            return
+        }
         guard position < 3, let previous = previousIndex else {
             seek(to: 0)
             return
@@ -294,6 +366,151 @@ final class MusicPlayer {
         }
         report(.progress)
         updateNowPlaying()
+        armChapterStop()
+    }
+
+    /// Seeks to a time in the whole book, loading another of its files if needed; in a song, just seeks.
+    func seekBook(to seconds: Double) {
+        guard let book else {
+            seek(to: seconds)
+            return
+        }
+        let target = min(max(0, seconds), max(0, book.duration - 0.5))
+        let part = book.part(at: target)
+        let local = target - book.offset(of: part)
+        if part == index {
+            seek(to: local)
+        } else {
+            load(at: part, startAt: local, autoplay: isPlaying)
+        }
+    }
+
+    /// Skips forward or back, across the files of a book.
+    func skip(by seconds: Double) {
+        seekBook(to: bookPosition + seconds)
+    }
+
+    func nextChapter() {
+        guard let book, let chapter = currentChapter, book.chapters.indices.contains(chapter.id + 1) else {
+            return
+        }
+        seekBook(to: book.chapters[chapter.id + 1].start)
+    }
+
+    /// Goes back to the start of the chapter, or to the chapter before within its first seconds.
+    func previousChapter() {
+        guard let book, let chapter = currentChapter else {
+            return
+        }
+        if bookPosition - chapter.start < 3, chapter.id > 0 {
+            seekBook(to: book.chapters[chapter.id - 1].start)
+        } else {
+            seekBook(to: chapter.start)
+        }
+    }
+
+    func jump(to chapter: BookChapter) {
+        seekBook(to: chapter.start)
+        if !isPlaying {
+            play()
+        }
+    }
+
+    func setRate(_ value: Double) {
+        rate = value
+        app.settings.audiobookRate = value
+        applyRate()
+    }
+
+    private func applyRate() {
+        let effective = Float(book == nil ? 1 : rate)
+        player.defaultRate = effective
+        if player.rate != 0 {
+            player.rate = effective
+        }
+        updateNowPlaying()
+    }
+
+    // MARK: - Sleep timer
+
+    func setSleepTimer(_ timer: SleepTimer?) {
+        sleepTask?.cancel()
+        sleepTask = nil
+        // A fade that was cut short.
+        player.volume = Float(volume / 100)
+        sleepTimer = timer
+        if case let .at(deadline) = timer {
+            sleepTask = Task { [weak self] in
+                await self?.runSleepTimer(until: deadline)
+            }
+        }
+        armChapterStop()
+    }
+
+    /// Waits for the time, fades out over a few seconds, and pauses.
+    private func runSleepTimer(until deadline: Date) async {
+        let fade = 6.0
+        let steps = 30
+        try? await Task.sleep(for: .seconds(max(0, deadline.timeIntervalSinceNow - fade)))
+        for step in 1...steps {
+            guard !Task.isCancelled else {
+                return
+            }
+            player.volume = Float(volume / 100) * Float(1 - Double(step) / Double(steps))
+            try? await Task.sleep(for: .seconds(fade / Double(steps)))
+        }
+        guard !Task.isCancelled else {
+            return
+        }
+        sleepTask = nil
+        sleepTimer = nil
+        pause()
+        player.volume = Float(volume / 100)
+    }
+
+    /// Arms the stop at the end of the chapter or song: a boundary inside a book's file, or the end of the file.
+    private func armChapterStop() {
+        if let sleepBoundary {
+            player.removeTimeObserver(sleepBoundary)
+            self.sleepBoundary = nil
+        }
+        stopsAtItemEnd = false
+        defer {
+            updateItemEndAction()
+        }
+        guard sleepTimer == .endOfChapter, currentItem != nil else {
+            return
+        }
+        guard let book, let chapter = currentChapter, entries.indices.contains(index) else {
+            stopsAtItemEnd = true
+            return
+        }
+        let offset = book.offset(of: index)
+        let fileEnd = offset + (entries[index].item.duration ?? duration)
+        guard chapter.part == index, chapter.end < fileEnd - 1 else {
+            stopsAtItemEnd = true
+            return
+        }
+        let time = CMTime(seconds: chapter.end - offset, preferredTimescale: 600)
+        sleepBoundary = player.addBoundaryTimeObserver(forTimes: [NSValue(time: time)], queue: .main) { [weak self] in
+            MainActor.assumeIsolated {
+                self?.chapterEndReached(chapter)
+            }
+        }
+    }
+
+    /// Pauses at the end of a chapter, right where the next one starts.
+    private func chapterEndReached(_ chapter: BookChapter) {
+        guard sleepTimer == .endOfChapter, book != nil, abs(bookPosition - chapter.end) < 3 else {
+            return
+        }
+        setSleepTimer(nil)
+        pause()
+        seekBook(to: chapter.end)
+    }
+
+    private func updateItemEndAction() {
+        player.actionAtItemEnd = stopsAtItemEnd ? .pause : (repeatMode == .one ? .none : .advance)
     }
 
     func adjustVolume(by delta: Double) {
@@ -308,6 +525,9 @@ final class MusicPlayer {
     }
 
     func toggleShuffle() {
+        guard book == nil else {
+            return
+        }
         if isShuffled {
             // Back to the original order, continuing after the current song.
             if let unshuffled, let currentId = currentEntry?.id, let position = unshuffled.firstIndex(where: { $0.id == currentId }) {
@@ -335,6 +555,9 @@ final class MusicPlayer {
     }
 
     func setRepeatMode(_ mode: RepeatMode) {
+        guard book == nil else {
+            return
+        }
         applyRepeatMode(mode)
         if !entries.isEmpty {
             queueChanged()
@@ -344,7 +567,7 @@ final class MusicPlayer {
     private func applyRepeatMode(_ mode: RepeatMode) {
         repeatMode = mode
         // Repeating a song keeps it in the player at its end, to start over.
-        player.actionAtItemEnd = mode == .one ? .none : .advance
+        updateItemEndAction()
     }
 
     // MARK: - Editing the queue
@@ -407,6 +630,8 @@ final class MusicPlayer {
         isBuffering = false
         stream = nil
         lyrics = .none
+        leaveBook()
+        setSleepTimer(nil)
         releaseSystemControls()
         app.showsNowPlaying = false
         saveQueue()
@@ -420,6 +645,7 @@ final class MusicPlayer {
         for position in entries.indices where entries[position].item.id == itemId {
             entries[position].item.userData = data
         }
+        book?.apply(itemId, data)
     }
 
     private func queueChanged() {
@@ -532,7 +758,7 @@ final class MusicPlayer {
     }
 
     private func start(_ track: ResolvedTrack, at startAt: Double) {
-        let item = AVPlayerItem(url: track.url)
+        let item = makeItem(track.url)
         currentTrack = track
         currentItem = item
         currentObservation = observeStatus(of: item)
@@ -549,7 +775,15 @@ final class MusicPlayer {
             player.pause()
         }
         updateNowPlaying()
+        armChapterStop()
         prepareNext()
+    }
+
+    private func makeItem(_ url: URL) -> AVPlayerItem {
+        let item = AVPlayerItem(url: url)
+        // Keeps voices natural at other speeds.
+        item.audioTimePitchAlgorithm = .spectral
+        return item
     }
 
     private func observeStatus(of item: AVPlayerItem) -> NSKeyValueObservation {
@@ -624,7 +858,7 @@ final class MusicPlayer {
                 return
             }
             preparingEntryId = nil
-            let item = AVPlayerItem(url: track.url)
+            let item = makeItem(track.url)
             guard player.canInsert(item, after: currentItem) else {
                 return
             }
@@ -674,10 +908,18 @@ final class MusicPlayer {
         guard seconds.isFinite, !isSeeking, pendingSeek == nil, let currentItem, player.currentItem === currentItem else {
             return
         }
+        // The status observation misses a change when the player was already playing before the new file.
+        if isBuffering, seconds > position, player.timeControlStatus == .playing {
+            isBuffering = false
+        }
         position = seconds
         let itemDuration = currentItem.duration.seconds
         if itemDuration.isFinite, itemDuration > 0 {
             duration = itemDuration
+        }
+        if book != nil, currentChapter?.id != lastChapterId {
+            lastChapterId = currentChapter?.id
+            updateNowPlaying()
         }
     }
 
@@ -688,7 +930,7 @@ final class MusicPlayer {
         else {
             return
         }
-        finishReport()
+        finishReport(completed: true)
         generation += 1
         self.prepared = nil
         index = target
@@ -706,6 +948,7 @@ final class MusicPlayer {
         loadLyrics(for: entries[target].item)
         updateNowPlaying()
         saveQueue()
+        armChapterStop()
         prepareNext()
     }
 
@@ -714,6 +957,14 @@ final class MusicPlayer {
             return
         }
         position = duration
+        if stopsAtItemEnd {
+            // The sleep timer ends with the chapter or song: stop, ready to continue with what follows.
+            setSleepTimer(nil)
+            isPlaying = false
+            finishReport(completed: true)
+            load(at: nextIndex ?? endIndex, autoplay: false)
+            return
+        }
         if repeatMode == .one {
             finishReport()
             player.seek(to: .zero)
@@ -726,20 +977,23 @@ final class MusicPlayer {
         guard prepared == nil else {
             return
         }
-        finishReport()
+        finishReport(completed: true)
         if let next = nextIndex {
             load(at: next, autoplay: true)
         } else {
-            // The end of the queue: stop on the last song, ready to play it again.
-            load(at: index, autoplay: false)
+            load(at: endIndex, autoplay: false)
         }
     }
+
+    /// Where playback waits once the queue ended: on the last song, ready to play it again, or at the start
+    /// of a finished book.
+    private var endIndex: Int { book == nil ? index : 0 }
 
     // MARK: - Lyrics
 
     private func loadLyrics(for item: BaseItem) {
         lyricsTask?.cancel()
-        guard item.hasLyrics != false, let client = app.client else {
+        guard book == nil, item.hasLyrics != false, let client = app.client else {
             lyrics = .none
             return
         }
@@ -765,16 +1019,28 @@ final class MusicPlayer {
     }
 
     /// Ends the server's play session of the current song, which records it as played once most of it was heard.
-    private func finishReport() {
+    ///
+    /// - Parameter completed: Whether the file played to its end. A book's file then goes without a position,
+    ///   which the server takes as finished; it would otherwise ignore positions in a book's last minutes.
+    private func finishReport(completed: Bool = false) {
         guard hasReportedStart else {
             return
         }
-        report(.stopped)
+        recordOfflineProgress(completed: completed)
+        report(.stopped, completed: completed)
         hasReportedStart = false
         lastReportedPosition = -1
     }
 
-    private func playbackReport(stopped: Bool) -> PlaybackReport? {
+    /// Keeps the position in a downloaded book's file locally, in case the server can't be reached.
+    private func recordOfflineProgress(completed: Bool) {
+        guard book != nil, let track = currentTrack, track.stream.isDownloaded else {
+            return
+        }
+        app.downloads.recordPlayback(track.itemId, position: position, duration: max(duration, position), finished: completed)
+    }
+
+    private func playbackReport(stopped: Bool, completed: Bool = false) -> PlaybackReport? {
         guard let track = currentTrack else {
             return nil
         }
@@ -782,7 +1048,7 @@ final class MusicPlayer {
             itemId: track.itemId,
             mediaSourceId: track.mediaSourceId,
             playSessionId: track.playSessionId,
-            positionTicks: position.ticks,
+            positionTicks: stopped && completed && book != nil ? nil : position.ticks,
             isPaused: stopped ? nil : !isPlaying,
             volumeLevel: stopped ? nil : Int(volume),
             canSeek: stopped ? nil : true,
@@ -791,18 +1057,38 @@ final class MusicPlayer {
     }
 
     /// Sends reports strictly in order, so "stopped" never overtakes "progress".
-    private func report(_ kind: ReportKind) {
-        guard hasReportedStart || kind == .start, let report = playbackReport(stopped: kind == .stopped), let client = app.client else {
+    private func report(_ kind: ReportKind, completed: Bool = false) {
+        guard hasReportedStart || kind == .start, let report = playbackReport(stopped: kind == .stopped, completed: completed),
+              let client = app.client
+        else {
             return
         }
+        let isBook = book != nil
         let previous = reportChain
         reportChain = Task {
             await previous?.value
             switch kind {
             case .start: await client.reportPlaybackStart(report)
             case .progress: await client.reportPlaybackProgress(report)
-            case .stopped: await client.reportPlaybackStopped(report)
+            case .stopped:
+                let delivered = await client.reportPlaybackStopped(report)
+                if isBook {
+                    await bookFileStopped(report.itemId, delivered: delivered, client: client)
+                }
             }
+        }
+    }
+
+    /// Shares the new progress of a book's file, so the book's page and the library show it.
+    private func bookFileStopped(_ itemId: String, delivered: Bool, client: JellyfinClient) async {
+        if delivered {
+            app.downloads.markSynced(itemId)
+            if let data = try? await client.userData(itemId) {
+                app.broadcast(itemId, data)
+            }
+        } else if let data = app.downloads.records[itemId]?.item.userData {
+            // Recorded offline, to be synced later.
+            app.announce(itemId, data)
         }
     }
 
@@ -823,6 +1109,7 @@ final class MusicPlayer {
         guard hasReportedStart, let report = playbackReport(stopped: true) else {
             return
         }
+        recordOfflineProgress(completed: false)
         hasReportedStart = false
         player.pause()
         app.client?.reportPlaybackStoppedBlocking(report, timeout: 2)
@@ -833,8 +1120,17 @@ final class MusicPlayer {
     private func saveQueue() {
         let defaults = UserDefaults.standard
         guard !entries.isEmpty else {
-            ["musicQueue", "musicQueueIndex", "musicPosition", "musicUnshuffledQueue"].forEach(defaults.removeObject)
+            ["musicQueue", "musicQueueIndex", "musicPosition", "musicUnshuffledQueue", "musicBook"].forEach(defaults.removeObject)
             return
+        }
+        if let book {
+            // Just enough to find the book again.
+            var seed = BaseItem(id: book.item.id, name: book.item.name, type: book.item.type)
+            seed.album = book.item.album
+            seed.parentId = book.item.parentId
+            defaults.set(try? JSONEncoder().encode(seed), forKey: "musicBook")
+        } else {
+            defaults.removeObject(forKey: "musicBook")
         }
         // A window around the current song, small enough to restore with a few requests.
         let lower = max(0, index - 50)
@@ -855,6 +1151,10 @@ final class MusicPlayer {
     func restore() async {
         let defaults = UserDefaults.standard
         guard entries.isEmpty, let client = app.client, let ids = defaults.stringArray(forKey: "musicQueue"), !ids.isEmpty else {
+            return
+        }
+        if let data = defaults.data(forKey: "musicBook"), let seed = try? JSONDecoder().decode(BaseItem.self, from: data) {
+            await restoreBook(seed, ids: ids)
             return
         }
         applyRepeatMode(RepeatMode(rawValue: defaults.string(forKey: "musicRepeat") ?? "") ?? .off)
@@ -884,6 +1184,26 @@ final class MusicPlayer {
             isShuffled = true
         }
         loadLyrics(for: list[index].item)
+    }
+
+    private func restoreBook(_ seed: BaseItem, ids: [String]) async {
+        let defaults = UserDefaults.standard
+        guard let book = try? await app.audiobook(for: seed), !book.parts.isEmpty, entries.isEmpty else {
+            return
+        }
+        let savedIndex = defaults.integer(forKey: "musicQueueIndex")
+        let currentId = ids.indices.contains(savedIndex) ? ids[savedIndex] : nil
+        self.book = book
+        applyRepeatMode(.off)
+        applyRate()
+        entries = book.parts.map { Entry(item: $0) }
+        if let saved = book.parts.firstIndex(where: { $0.id == currentId }) {
+            index = saved
+            position = defaults.double(forKey: "musicPosition")
+        } else {
+            (index, position) = book.resumePoint
+        }
+        duration = entries[index].item.duration ?? 0
     }
 
     // MARK: - System integration
@@ -926,12 +1246,20 @@ final class MusicPlayer {
         add(commands.pauseCommand) { $0.pause() }
         add(commands.nextTrackCommand) { $0.next() }
         add(commands.previousTrackCommand) { $0.previous() }
+        for (command, sign) in [(commands.skipForwardCommand, 1.0), (commands.skipBackwardCommand, -1.0)] {
+            let target = command.addTarget { [weak self] event in
+                let interval = (event as? MPSkipIntervalCommandEvent)?.interval ?? 15
+                Task { @MainActor in self?.skip(by: sign * interval) }
+                return .success
+            }
+            remoteTargets.append((command, target))
+        }
         let seek = commands.changePlaybackPositionCommand.addTarget { [weak self] event in
             guard let event = event as? MPChangePlaybackPositionCommandEvent else {
                 return .commandFailed
             }
             let time = event.positionTime
-            Task { @MainActor in self?.seek(to: time) }
+            Task { @MainActor in self?.seekBook(to: time) }
             return .success
         }
         remoteTargets.append((commands.changePlaybackPositionCommand, seek))
@@ -942,6 +1270,9 @@ final class MusicPlayer {
             command.removeTarget(target)
         }
         remoteTargets = []
+        // The video player skips with these and doesn't turn them back on.
+        MPRemoteCommandCenter.shared().skipForwardCommand.isEnabled = true
+        MPRemoteCommandCenter.shared().skipBackwardCommand.isEnabled = true
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
         MPNowPlayingInfoCenter.default().playbackState = .stopped
     }
@@ -950,11 +1281,19 @@ final class MusicPlayer {
         guard !remoteTargets.isEmpty, let item = current else {
             return
         }
+        let commands = MPRemoteCommandCenter.shared()
+        // Books skip by the intervals from the settings; songs show previous and next instead.
+        commands.skipForwardCommand.isEnabled = book != nil
+        commands.skipBackwardCommand.isEnabled = book != nil
+        commands.skipForwardCommand.preferredIntervals = [NSNumber(value: app.settings.audiobookSkipForward)]
+        commands.skipBackwardCommand.preferredIntervals = [NSNumber(value: app.settings.audiobookSkipBack)]
+        let speed = book == nil ? 1 : rate
         var info: [String: Any] = [
             MPMediaItemPropertyTitle: item.displayName,
             MPMediaItemPropertyPlaybackDuration: duration,
             MPNowPlayingInfoPropertyElapsedPlaybackTime: position,
-            MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? 1 : 0,
+            MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? speed : 0,
+            MPNowPlayingInfoPropertyDefaultPlaybackRate: speed,
             MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.audio.rawValue,
         ]
         if let artist = item.artistLine {
@@ -963,7 +1302,21 @@ final class MusicPlayer {
         if let album = item.album {
             info[MPMediaItemPropertyAlbumTitle] = album
         }
-        if let artwork, artwork.itemId == item.id {
+        // A book shows its chapter as the title and counts its time from the start of the book.
+        if let book {
+            let chapter = currentChapter
+            info[MPMediaItemPropertyTitle] = book.chapters.count > 1 ? chapter?.title ?? book.title : book.title
+            info[MPMediaItemPropertyAlbumTitle] = book.title
+            info[MPMediaItemPropertyArtist] = book.author
+            info[MPMediaItemPropertyPlaybackDuration] = book.duration
+            info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = bookPosition
+            if let chapter {
+                info[MPNowPlayingInfoPropertyChapterNumber] = chapter.id
+                info[MPNowPlayingInfoPropertyChapterCount] = book.chapters.count
+            }
+        }
+        let artworkId = book?.id ?? item.id
+        if let artwork, artwork.itemId == artworkId {
             info[MPMediaItemPropertyArtwork] = artwork.artwork
         } else {
             loadArtwork(for: item)
@@ -973,20 +1326,22 @@ final class MusicPlayer {
     }
 
     private func loadArtwork(for item: BaseItem) {
-        guard let url = app.client?.coverURL(item, width: 600) else {
+        let id = book?.id ?? item.id
+        guard let url = book.flatMap({ app.coverURL(of: $0, width: 600) }) ?? app.client?.coverURL(item, width: 600) else {
             return
         }
         Task {
-            guard let image = await ImageLoader.shared.image(for: url), current?.id == item.id else {
+            guard let image = await ImageLoader.shared.image(for: url), (book?.id ?? current?.id) == id else {
                 return
             }
             let picture = NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
-            artwork = (item.id, MPMediaItemArtwork(boundsSize: picture.size) { _ in picture })
+            artwork = (id, MPMediaItemArtwork(boundsSize: picture.size) { _ in picture })
             updateNowPlaying()
         }
     }
 
     /// Space plays and pauses, ⌘← and ⌘→ skip, ⌘↑ and ⌘↓ change the volume, while no video is open.
+    /// In a book, ⌘← and ⌘→ move between chapters, and ⇧⌘← and ⇧⌘→ skip back and forward.
     /// Handled here rather than as menu shortcuts, so the keys keep working in text fields.
     private func installKeyMonitor() {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
@@ -1007,6 +1362,8 @@ final class MusicPlayer {
         case (49, []): togglePlayPause()
         case (123, .command): previous()
         case (124, .command): next()
+        case (123, [.command, .shift]) where book != nil: skip(by: -app.settings.audiobookSkipBack)
+        case (124, [.command, .shift]) where book != nil: skip(by: app.settings.audiobookSkipForward)
         case (126, .command): adjustVolume(by: 5)
         case (125, .command): adjustVolume(by: -5)
         default: return false

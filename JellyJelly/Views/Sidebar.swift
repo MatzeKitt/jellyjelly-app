@@ -32,10 +32,13 @@ struct Sidebar: View {
                         }
                     }
 
-                    if !app.libraries.isEmpty {
+                    if !app.libraries.isEmpty || app.hasAudiobooks {
                         groupHeader("LIBRARIES")
                         ForEach(app.libraries) { library in
                             SidebarRow(title: library.displayName, systemImage: icon(for: library), section: .library(library.id))
+                        }
+                        ForEach(app.audiobookLibraries) { library in
+                            SidebarRow(title: library.displayName, systemImage: "books.vertical.fill", section: .audiobooks(library.id))
                         }
                     }
                 }

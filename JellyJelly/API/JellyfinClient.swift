@@ -378,6 +378,10 @@ final class JellyfinClient: @unchecked Sendable {
         try await send(favorite ? "POST" : "DELETE", "/UserFavoriteItems/\(itemId)", query: [userQuery], as: UserItemData.self)
     }
 
+    func userData(_ itemId: String) async throws -> UserItemData {
+        try await get("/UserItems/\(itemId)/UserData", query: [userQuery])
+    }
+
     func updateUserData(_ itemId: String, _ update: UserDataUpdate) async throws {
         let body = try JellyfinJSON.encoder.encode(update)
         try await send("POST", "/UserItems/\(itemId)/UserData", query: [userQuery], body: body)

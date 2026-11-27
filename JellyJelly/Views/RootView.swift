@@ -88,7 +88,9 @@ struct RootView: View {
         if request.items.isEmpty {
             return String(localized: "Everything in it is already downloaded.")
         }
-        var message = if request.container.isMusic {
+        var message = if request.isAudiobook {
+            String(localized: "\(request.items.count) files of this audiobook aren't downloaded yet.")
+        } else if request.container.isMusic {
             String(localized: "\(request.items.count) songs aren't downloaded yet.")
         } else if app.isYouTube(request.container) {
             String(localized: "\(request.items.count) videos aren't downloaded yet, \(request.unwatched.count) of them unwatched.")
@@ -211,6 +213,12 @@ struct ContentStack: View {
             MusicHomeView()
         case let .music(section):
             MusicBrowseView(section: section)
+        case let .audiobooks(id):
+            if let library = app.audiobookLibraries.first(where: { $0.id == id }) {
+                AudiobooksView(library: library)
+            } else {
+                LoadingView()
+            }
         case .settings:
             SettingsView(embedded: true)
         }
@@ -237,6 +245,8 @@ struct ContentStack: View {
             }
         case let .library(library):
             LibraryView(library: library)
+        case let .audiobook(seed):
+            AudiobookView(seed: seed)
         }
     }
 }

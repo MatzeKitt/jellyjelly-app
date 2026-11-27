@@ -85,6 +85,8 @@ struct SearchView: View {
 
                 MusicResults(items: results)
 
+                AudiobookResults(items: results)
+
                 if !query.isEmpty, !searching, results.isEmpty {
                     EmptyStateView(systemImage: "magnifyingglass", title: String(localized: "No results"), message: String(localized: "Nothing matches “\(query)”."))
                         .frame(height: 300)
@@ -121,6 +123,10 @@ struct SearchView: View {
         query.includeItemTypes = [ItemType.movie, ItemType.series, ItemType.episode, ItemType.video]
         if app.hasMusic {
             query.includeItemTypes += [ItemType.musicArtist, ItemType.musicAlbum, ItemType.audio, ItemType.playlist]
+        }
+        if app.hasAudiobooks {
+            query.includeItemTypes.append(ItemType.audioBook)
+            query.fields.append("ParentId")
         }
         query.sortBy = ["SortName"]
         query.limit = 120
@@ -176,6 +182,7 @@ struct FavoritesView: View {
                     }
                 }
                 MusicResults(items: items)
+                AudiobookResults(items: items)
                 if loaded && items.isEmpty {
                     EmptyStateView(systemImage: "heart", title: String(localized: "No favorites yet"),
                                    message: String(localized: "Right-click any video, channel, movie, or show and choose “Add to Favorites”."))
@@ -194,7 +201,11 @@ struct FavoritesView: View {
             query.isFavorite = true
             query.includeItemTypes = [ItemType.movie, ItemType.series, ItemType.episode, ItemType.video]
             if app.hasMusic {
-                query.includeItemTypes += [ItemType.musicArtist, ItemType.musicAlbum, ItemType.audio, ItemType.playlist]
+                    query.includeItemTypes += [ItemType.musicArtist, ItemType.musicAlbum, ItemType.audio, ItemType.playlist]
+            }
+            if app.hasAudiobooks {
+                query.includeItemTypes.append(ItemType.audioBook)
+                query.fields.append("ParentId")
             }
             query.sortBy = ["SortName"]
             query.limit = 500
@@ -251,6 +262,22 @@ private struct MusicResults: View {
             Shelf(title: String(localized: "Playlists")) {
                 ForEach(playlists) { playlist in
                     MusicCard(item: playlist)
+                }
+            }
+        }
+    }
+}
+
+/// Audiobooks among search results or favorites, one card per book even when several of its files match.
+private struct AudiobookResults: View {
+    var items: [BaseItem]
+
+    var body: some View {
+        let books = Audiobook.books(from: items)
+        if !books.isEmpty {
+            Shelf(title: String(localized: "Audiobooks")) {
+                ForEach(books) { book in
+                    BookCard(book: book, width: 150)
                 }
             }
         }

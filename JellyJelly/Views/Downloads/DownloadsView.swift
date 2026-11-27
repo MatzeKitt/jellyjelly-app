@@ -34,7 +34,7 @@ struct DownloadsView: View {
 
                 if downloads.records.isEmpty {
                     EmptyStateView(systemImage: "arrow.down.circle", title: String(localized: "No downloads yet"),
-                                   message: String(localized: "Right-click a movie, episode, video, or song and choose “Download” to use it offline. Seasons, series, channels, albums, and playlists can be downloaded in one go."))
+                                   message: String(localized: "Right-click a movie, episode, video, song, or audiobook and choose “Download” to use it offline. Seasons, series, channels, albums, and playlists can be downloaded in one go."))
                         .frame(height: 400)
                 }
             }
@@ -76,9 +76,13 @@ struct DownloadsView: View {
     }
 
     /// Up next continues with the following downloads of the same group, so autoplay keeps working offline.
-    /// Songs play the album from there.
+    /// Songs play the album from there, and an audiobook's file plays in its book.
     private func play(_ record: DownloadRecord, in group: DownloadGroup) {
         let index = group.records.firstIndex { $0.id == record.id } ?? 0
+        if record.item.isAudiobook {
+            app.playAudiobook(from: record.item)
+            return
+        }
         if record.item.isAudio {
             app.music.play(group.records.map(\.item), startingAt: index)
             return
@@ -93,7 +97,13 @@ private struct DownloadGroup: Identifiable {
     var records: [DownloadRecord]
 
     static func groups(from records: [DownloadRecord]) -> [DownloadGroup] {
+        // Books made of several files get a group each; books of a single file share one.
+        let bookSizes = Dictionary(grouping: records.filter(\.item.isAudiobook)) { Audiobook.groupKey($0.item) }.mapValues(\.count)
         let grouped = Dictionary(grouping: records) { record in
+            if record.item.isAudiobook {
+                let key = Audiobook.groupKey(record.item)
+                return (bookSizes[key] ?? 0) > 1 ? "book:" + key : "audiobooks"
+            }
             if record.item.isAudio {
                 return "album:" + (record.item.albumId ?? "")
             }
@@ -105,6 +115,8 @@ private struct DownloadGroup: Identifiable {
             case "videos": String(localized: "Videos")
             case "album:": String(localized: "Songs")
             case _ where key.hasPrefix("album:"): records.first?.item.album ?? String(localized: "Album")
+            case "audiobooks": String(localized: "Audiobooks")
+            case _ where key.hasPrefix("book:"): records.first?.item.album ?? String(localized: "Audiobook")
             default: records.first?.item.seriesName ?? String(localized: "Series")
             }
             return DownloadGroup(id: key, title: title, records: records.sorted(by: playbackOrder))
@@ -115,6 +127,9 @@ private struct DownloadGroup: Identifiable {
     private static func playbackOrder(_ lhs: DownloadRecord, _ rhs: DownloadRecord) -> Bool {
         let a = lhs.item
         let b = rhs.item
+        if a.isAudiobook, b.isAudiobook, a.id != b.id, Audiobook.groupKey(a) == Audiobook.groupKey(b) {
+            return Audiobook.sortedParts([a, b]).first?.id == a.id
+        }
         if (a.parentIndexNumber ?? 0, a.indexNumber ?? 0) != (b.parentIndexNumber ?? 0, b.indexNumber ?? 0) {
             return (a.parentIndexNumber ?? 0, a.indexNumber ?? 0) < (b.parentIndexNumber ?? 0, b.indexNumber ?? 0)
         }
@@ -135,11 +150,11 @@ private struct DownloadRow: View {
 
     private var item: BaseItem { record.item }
 
-    /// Songs show their square cover, smaller than the stills of videos.
-    private var artworkSize: CGSize { item.isAudio ? CGSize(width: 64, height: 64) : CGSize(width: 192, height: 108) }
+    /// Songs and audiobooks show their square cover, smaller than the stills of videos.
+    private var artworkSize: CGSize { item.isAudioFile ? CGSize(width: 64, height: 64) : CGSize(width: 192, height: 108) }
 
     private var artworkURL: URL? {
-        if item.isAudio {
+        if item.isAudioFile {
             return app.downloads.imageURL(for: record.id, "cover") ?? app.client?.coverURL(item, width: 160)
         }
         return app.downloads.imageURL(for: record.id, "thumb") ?? app.client?.thumbURL(item, width: 520)
@@ -158,7 +173,7 @@ private struct DownloadRow: View {
                     if hovering, status == .completed {
                         Color.black.opacity(0.35)
                         Image(systemName: "play.fill")
-                            .font(.system(size: item.isAudio ? 18 : 24))
+                            .font(.system(size: item.isAudioFile ? 18 : 24))
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                     if item.isPlayed, !item.isAudio {
@@ -168,7 +183,7 @@ private struct DownloadRow: View {
                     }
                 }
                 .frame(width: artworkSize.width, height: artworkSize.height)
-                .clipShape(RoundedRectangle(cornerRadius: item.isAudio ? 6 : 10, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: item.isAudioFile ? 6 : 10, style: .continuous))
             }
             .buttonStyle(.plain)
             .disabled(status != .completed)
@@ -199,7 +214,7 @@ private struct DownloadRow: View {
 
     private var detail: String? {
         var parts: [String] = []
-        if item.isAudio {
+        if item.isAudioFile {
             parts = [item.artistLine, item.album].compactMap { $0 }
         } else if item.isEpisode {
             if let series = item.seriesName {
